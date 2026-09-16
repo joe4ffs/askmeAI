@@ -1,0 +1,4 @@
+{
+  "subject": "math",
+  "grading_instructions": "Award partial credit when the method/approach is correct but there is an arithmetic slip, as long as the rubric criterion is about the method rather than the final numeric answer. Do not penalize alternate valid solution paths that were not anticipated by the reference answer. Treat a correct final answer reached via an invalid method as not meeting a criterion about that method."
+}

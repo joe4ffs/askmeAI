@@ -80,6 +80,13 @@ class RubricItem(BaseModel):
     points: float = Field(gt=0)
 
 
+class SubjectPreset(BaseModel):
+    subject: str
+    grading_instructions: str = Field(
+        description="Subject-specific grading guidance appended to the engine's system prompt"
+    )
+
+
 class GradingRequest(BaseModel):
     question: str
     reference_answer: str

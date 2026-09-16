@@ -3,6 +3,7 @@ import os
 
 import anthropic
 
+from grader.presets import load_preset
 from grader.schema import GradingRequest, GradingResult
 
 MODEL = "claude-sonnet-5"
@@ -46,13 +47,20 @@ Grade the student answer against the rubric above. Return JSON matching this sch
 """
 
 
+def _build_system_prompt(req: GradingRequest) -> str:
+    preset = load_preset(req.subject)
+    if preset is None:
+        return SYSTEM_PROMPT
+    return f"{SYSTEM_PROMPT}\nSubject-specific guidance for {preset.subject}:\n{preset.grading_instructions}"
+
+
 def grade(req: GradingRequest, client: anthropic.Anthropic | None = None) -> GradingResult:
     client = client or anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
     response = client.messages.create(
         model=MODEL,
         max_tokens=4096,
-        system=SYSTEM_PROMPT,
+        system=_build_system_prompt(req),
         messages=[{"role": "user", "content": _build_user_prompt(req)}],
     )
 
