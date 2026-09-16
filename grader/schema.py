@@ -2,6 +2,30 @@ from enum import Enum
 from pydantic import BaseModel, Field, model_validator
 
 
+class OcrConfidence(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+class OcrResult(BaseModel):
+    extracted_text: str = Field(description="The transcribed text of the handwritten answer")
+    confidence: OcrConfidence
+    is_illegible: bool = Field(
+        description="True if part or all of the answer could not be confidently transcribed"
+    )
+    notes: str | None = Field(
+        default=None,
+        description="Explanation of what's illegible or uncertain; required if is_illegible is True",
+    )
+
+    @model_validator(mode="after")
+    def _illegible_requires_notes(self) -> "OcrResult":
+        if self.is_illegible and not self.notes:
+            raise ValueError("notes is required when is_illegible is True")
+        return self
+
+
 class RubricItemStatus(str, Enum):
     MET = "met"
     PARTIALLY_MET = "partially_met"
@@ -60,5 +84,16 @@ class GradingRequest(BaseModel):
     question: str
     reference_answer: str
     rubric: list[RubricItem]
-    student_answer: str
+    student_answer: str = ""
+    student_answer_image_path: str | None = Field(
+        default=None,
+        description="Path to a handwritten answer image; if set and student_answer is empty, "
+        "grade_file.py OCRs this image first to fill student_answer",
+    )
     subject: str = "general"
+
+    @model_validator(mode="after")
+    def _answer_or_image_required(self) -> "GradingRequest":
+        if not self.student_answer and not self.student_answer_image_path:
+            raise ValueError("either student_answer or student_answer_image_path is required")
+        return self

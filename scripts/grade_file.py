@@ -20,12 +20,21 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from grader.engine import grade
+from grader.ocr import ocr_image
 from grader.schema import GradingRequest
 
 
 def main(path: str) -> None:
     raw = json.loads(Path(path).read_text())
     req = GradingRequest.model_validate(raw)
+
+    if not req.student_answer and req.student_answer_image_path:
+        ocr_result = ocr_image(req.student_answer_image_path)
+        print(f"OCR confidence: {ocr_result.confidence}", file=sys.stderr)
+        if ocr_result.is_illegible:
+            print(f"OCR flagged illegible content: {ocr_result.notes}", file=sys.stderr)
+        req = req.model_copy(update={"student_answer": ocr_result.extracted_text})
+
     result = grade(req)
     print(result.model_dump_json(indent=2))
 

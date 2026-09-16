@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from grader.schema import GradingResult, RubricItemResult, RubricItemStatus
+from grader.schema import GradingRequest, GradingResult, RubricItem, RubricItemResult, RubricItemStatus
 
 
 def _make_item(points_awarded=1.0, points_possible=1.0, status=RubricItemStatus.MET):
@@ -58,3 +58,23 @@ def test_points_awarded_cannot_exceed_possible():
             overall_rationale="Bad case that should never validate.",
             is_ambiguous=False,
         )
+
+
+def test_grading_request_requires_answer_or_image():
+    with pytest.raises(ValidationError):
+        GradingRequest(
+            question="What is 2+2?",
+            reference_answer="4",
+            rubric=[RubricItem(criterion="States the correct sum", points=1.0)],
+        )
+
+
+def test_grading_request_accepts_image_path_without_text():
+    req = GradingRequest(
+        question="What is 2+2?",
+        reference_answer="4",
+        rubric=[RubricItem(criterion="States the correct sum", points=1.0)],
+        student_answer_image_path="data/samples/answer1.png",
+    )
+    assert req.student_answer == ""
+    assert req.student_answer_image_path == "data/samples/answer1.png"

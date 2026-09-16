@@ -6,10 +6,12 @@ ambiguity flags for cases a human should review.
 
 ## Phased plan
 
-- **Phase 0 (current)** — Core grading loop on clean typed text, one subject at a time. Get the
+- **Phase 0 (done)** — Core grading loop on clean typed text, one subject at a time. Get the
   grading logic trustworthy before touching OCR/handwriting at all.
-- **Phase 1** — Add handwriting ingestion via vision-capable LLM OCR as a preprocessing step. Track
-  OCR accuracy and grading accuracy as two separate numbers.
+- **Phase 1 (current)** — Add handwriting ingestion via vision-capable LLM OCR as a preprocessing
+  step (`grader/ocr.py`). OCR runs as its own call producing an `OcrResult` (text, confidence,
+  illegibility flag) before grading, so OCR accuracy and grading accuracy stay two separate,
+  trackable numbers.
 - **Phase 2** — Make the rubric/reference an input instead of hardcoded, so any subject/question can
   be graded.
 - **Phase 3** — Evaluation study: run against real student answers with known human grades, report
@@ -46,6 +48,20 @@ Case file format — see `data/samples/example_case.json`:
   "reference_answer": "...",
   "rubric": [{ "criterion": "...", "points": 2 }],
   "student_answer": "..."
+}
+```
+
+For a handwritten answer, omit `student_answer` and set `student_answer_image_path` to an image
+file instead. `grade_file.py` OCRs it first (via `grader/ocr.py`) and prints the OCR confidence
+(and any illegibility warning) to stderr before grading:
+
+```json
+{
+  "subject": "operating_systems",
+  "question": "...",
+  "reference_answer": "...",
+  "rubric": [{ "criterion": "...", "points": 2 }],
+  "student_answer_image_path": "data/samples/answer1.png"
 }
 ```
 
