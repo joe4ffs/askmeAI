@@ -21,6 +21,10 @@ def get_provider(name: str | None = None) -> ModelProvider:
         from grader.providers.openai_provider import OpenAIProvider
 
         return OpenAIProvider()
+    if name == "gemini":
+        from grader.providers.gemini_provider import GeminiProvider
+
+        return GeminiProvider()
     if name == "ollama":
         from grader.providers.ollama_provider import OllamaProvider
 
@@ -30,7 +34,9 @@ def get_provider(name: str | None = None) -> ModelProvider:
 
         return FakeProvider()
 
-    raise ValueError(f"Unknown model provider: {name!r} (expected anthropic, openai, ollama, or fake)")
+    raise ValueError(
+        f"Unknown model provider: {name!r} (expected anthropic, openai, gemini, ollama, or fake)"
+    )
 
 
 def _autodetect() -> str:
@@ -38,6 +44,8 @@ def _autodetect() -> str:
         return "anthropic"
     if os.environ.get("OPENAI_API_KEY"):
         return "openai"
+    if os.environ.get("GEMINI_API_KEY"):
+        return "gemini"
     return "fake"
 
 

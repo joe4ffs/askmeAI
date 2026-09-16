@@ -35,7 +35,12 @@ grade with a real model, set a key for the provider you want:
 ```bash
 setx ANTHROPIC_API_KEY "sk-ant-..."   # Windows, persists across sessions
 setx OPENAI_API_KEY "sk-..."          # or, for the OpenAI provider
+setx GEMINI_API_KEY "..."             # or, for the Gemini provider (no billing required)
 ```
+
+Anthropic and OpenAI both require billing to be set up before you can create a key. If you want a
+real model without setting up billing, get a free Gemini key at https://aistudio.google.com/apikey
+(no card needed) and set `GEMINI_API_KEY` — it's picked up automatically.
 
 ## Usage
 
@@ -76,8 +81,10 @@ file instead. `grade_file.py` OCRs it first (via `grader/ocr.py`) and prints the
 The engine and OCR both talk to a swappable `ModelProvider` (`grader/providers/`) instead of a
 hardcoded client, so grading logic never has to know which model is behind it:
 
-- `anthropic` — Claude, via `ANTHROPIC_API_KEY` (default when that key is set).
-- `openai` — GPT, via `OPENAI_API_KEY` (default when only that key is set).
+- `anthropic` — Claude, via `ANTHROPIC_API_KEY` (default when that key is set). Requires billing.
+- `openai` — GPT, via `OPENAI_API_KEY` (default when set and no Anthropic key). Requires billing.
+- `gemini` — Gemini, via `GEMINI_API_KEY` (default when set and no Anthropic/OpenAI key). Free tier,
+  no billing setup — get a key at https://aistudio.google.com/apikey.
 - `ollama` — a local Ollama server (https://ollama.com), no key required; needs a vision model
   pulled locally (e.g. `ollama pull llava`).
 - `fake` — no key, no network, deterministic. Grades by keyword overlap between rubric criteria and
@@ -85,8 +92,8 @@ hardcoded client, so grading logic never has to know which model is behind it:
   provider is configured and no API key is set, so the whole pipeline (CLI, eval script, tests) runs
   out of the box. Not a real grader — good for wiring/plumbing, not for real scores.
 
-Pick a provider explicitly with the `AI_GRADER_PROVIDER` env var (`anthropic`, `openai`, `ollama`,
-or `fake`), or pass one directly: `grade(req, provider=get_provider("openai"))`.
+Pick a provider explicitly with the `AI_GRADER_PROVIDER` env var (`anthropic`, `openai`, `gemini`,
+`ollama`, or `fake`), or pass one directly: `grade(req, provider=get_provider("gemini"))`.
 
 ## Subject presets
 

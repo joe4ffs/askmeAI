@@ -17,18 +17,29 @@ def test_get_provider_unknown_name_raises():
         get_provider("not_a_real_provider")
 
 
+def _clear_provider_env(monkeypatch):
+    for var in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY", "AI_GRADER_PROVIDER"):
+        monkeypatch.delenv(var, raising=False)
+
+
 def test_get_provider_env_var_selects_fake(monkeypatch):
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    _clear_provider_env(monkeypatch)
     monkeypatch.setenv("AI_GRADER_PROVIDER", "fake")
     assert isinstance(get_provider(), FakeProvider)
 
 
 def test_get_provider_autodetects_fake_with_no_keys(monkeypatch):
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    monkeypatch.delenv("AI_GRADER_PROVIDER", raising=False)
+    _clear_provider_env(monkeypatch)
     assert isinstance(get_provider(), FakeProvider)
+
+
+def test_get_provider_autodetects_gemini_when_only_gemini_key_set(monkeypatch):
+    _clear_provider_env(monkeypatch)
+    monkeypatch.setenv("GEMINI_API_KEY", "fake-key-for-test")
+
+    from grader.providers.gemini_provider import GeminiProvider
+
+    assert isinstance(get_provider(), GeminiProvider)
 
 
 def test_fake_provider_grades_matching_answer_as_met():
