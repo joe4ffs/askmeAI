@@ -1,0 +1,21 @@
+{
+  "case_id": "case_001",
+  "request": {
+    "subject": "operating_systems",
+    "question": "Explain the difference between a process and a thread.",
+    "reference_answer": "A process is an independent unit of execution with its own memory address space, file descriptors, and system resources. A thread is a unit of execution within a process; threads within the same process share the process's memory address space and resources, but each thread has its own stack and register state. Because threads share memory, communication between threads is cheaper than between processes, but processes are more isolated and crash-safe.",
+    "rubric": [
+      { "criterion": "States that a process has its own independent memory/address space", "points": 2 },
+      { "criterion": "States that threads within a process share that process's memory", "points": 2 },
+      { "criterion": "Mentions that each thread has its own stack/register state", "points": 1 },
+      { "criterion": "Notes a practical implication (e.g. isolation, crash-safety, or cheaper inter-thread communication)", "points": 1 }
+    ],
+    "student_answer": "A process is like its own program running with its own memory. A thread is part of a process and threads share the memory of the process they belong to. Threads are faster to communicate between because they share memory."
+  },
+  "human_judgments": [
+    { "criterion": "States that a process has its own independent memory/address space", "status": "met", "points_awarded": 2, "points_possible": 2 },
+    { "criterion": "States that threads within a process share that process's memory", "status": "met", "points_awarded": 2, "points_possible": 2 },
+    { "criterion": "Mentions that each thread has its own stack/register state", "status": "missed", "points_awarded": 0, "points_possible": 1 },
+    { "criterion": "Notes a practical implication (e.g. isolation, crash-safety, or cheaper inter-thread communication)", "status": "met", "points_awarded": 1, "points_possible": 1 }
+  ]
+}

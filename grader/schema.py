@@ -104,3 +104,29 @@ class GradingRequest(BaseModel):
         if not self.student_answer and not self.student_answer_image_path:
             raise ValueError("either student_answer or student_answer_image_path is required")
         return self
+
+
+class HumanRubricJudgment(BaseModel):
+    criterion: str = Field(description="The rubric criterion being judged, verbatim from the rubric")
+    status: RubricItemStatus
+    points_awarded: float = Field(ge=0)
+    points_possible: float = Field(gt=0)
+
+    @model_validator(mode="after")
+    def _points_within_bounds(self) -> "HumanRubricJudgment":
+        if self.points_awarded > self.points_possible:
+            raise ValueError(
+                f"points_awarded ({self.points_awarded}) exceeds points_possible "
+                f"({self.points_possible}) for criterion {self.criterion!r}"
+            )
+        return self
+
+
+class EvalCase(BaseModel):
+    case_id: str
+    request: GradingRequest
+    human_judgments: list[HumanRubricJudgment]
+
+    @property
+    def human_total_score(self) -> float:
+        return sum(j.points_awarded for j in self.human_judgments)

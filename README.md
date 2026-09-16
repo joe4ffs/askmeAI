@@ -12,12 +12,14 @@ ambiguity flags for cases a human should review.
   step (`grader/ocr.py`). OCR runs as its own call producing an `OcrResult` (text, confidence,
   illegibility flag) before grading, so OCR accuracy and grading accuracy stay two separate,
   trackable numbers.
-- **Phase 2 (current)** — Subject-specific grading presets (`presets/*.json`, loaded via
+- **Phase 2 (done)** — Subject-specific grading presets (`presets/*.json`, loaded via
   `grader/presets.py`). A case file's `subject` is looked up against `presets/<subject>.json`; if
   found, its `grading_instructions` are appended to the engine's system prompt. question,
   reference_answer, and rubric remain per-case inputs (already not hardcoded since Phase 0).
-- **Phase 3** — Evaluation study: run against real student answers with known human grades, report
-  agreement rates and error patterns.
+- **Phase 3 (current)** — Evaluation study (`scripts/run_eval.py`): grades every case in an eval
+  directory (`EvalCase` = a `GradingRequest` plus human `HumanRubricJudgment`s) and reports mean
+  absolute error, exact/near agreement rates, and how many cases the model flagged ambiguous. Writes
+  per-case results to CSV with `--out`.
 
 ## Setup
 
@@ -78,6 +80,26 @@ matching preset file just uses the base grading prompt.
 {
   "subject": "math",
   "grading_instructions": "Award partial credit when the method is correct but there's an arithmetic slip..."
+}
+```
+
+## Evaluation study
+
+Run the grading engine against a directory of human-graded cases and report agreement:
+
+```bash
+python scripts/run_eval.py data/eval --out results.csv
+```
+
+Eval case file format — see `data/eval/case_001.json`:
+
+```json
+{
+  "case_id": "case_001",
+  "request": { ...same fields as a grading case file... },
+  "human_judgments": [
+    { "criterion": "...", "status": "met", "points_awarded": 2, "points_possible": 2 }
+  ]
 }
 ```
 
