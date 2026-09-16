@@ -5,10 +5,10 @@ from grader.engine import grade, _extract_json
 from grader.schema import GradingRequest, RubricItem
 
 
-def _fake_response(payload: dict) -> MagicMock:
-    response = MagicMock()
-    response.content = [MagicMock(text=json.dumps(payload))]
-    return response
+def _fake_provider(payload: dict) -> MagicMock:
+    provider = MagicMock()
+    provider.complete.return_value = json.dumps(payload)
+    return provider
 
 
 def test_extract_json_strips_surrounding_prose():
@@ -43,14 +43,13 @@ def test_grade_calls_model_and_parses_result():
         "corrected_answer": None,
     }
 
-    client = MagicMock()
-    client.messages.create.return_value = _fake_response(payload)
+    provider = _fake_provider(payload)
 
-    result = grade(req, client=client)
+    result = grade(req, provider=provider)
 
     assert result.total_score == 1.0
     assert result.rubric_results[0].status == "met"
-    client.messages.create.assert_called_once()
+    provider.complete.assert_called_once()
 
 
 def test_grade_appends_subject_preset_to_system_prompt():
@@ -80,12 +79,11 @@ def test_grade_appends_subject_preset_to_system_prompt():
         "corrected_answer": None,
     }
 
-    client = MagicMock()
-    client.messages.create.return_value = _fake_response(payload)
+    provider = _fake_provider(payload)
 
-    grade(req, client=client)
+    grade(req, provider=provider)
 
-    system_prompt = client.messages.create.call_args.kwargs["system"]
+    system_prompt = provider.complete.call_args.kwargs["system"]
     assert "partial credit" in system_prompt.lower()
 
 
@@ -116,10 +114,9 @@ def test_grade_uses_base_prompt_for_subject_without_preset():
         "corrected_answer": None,
     }
 
-    client = MagicMock()
-    client.messages.create.return_value = _fake_response(payload)
+    provider = _fake_provider(payload)
 
-    grade(req, client=client)
+    grade(req, provider=provider)
 
-    system_prompt = client.messages.create.call_args.kwargs["system"]
+    system_prompt = provider.complete.call_args.kwargs["system"]
     assert "Subject-specific guidance" not in system_prompt

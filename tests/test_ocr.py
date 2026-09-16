@@ -8,10 +8,10 @@ from grader.ocr import ocr_image, _extract_json
 from grader.schema import OcrResult, OcrConfidence
 
 
-def _fake_response(payload: dict) -> MagicMock:
-    response = MagicMock()
-    response.content = [MagicMock(text=json.dumps(payload))]
-    return response
+def _fake_provider(payload: dict) -> MagicMock:
+    provider = MagicMock()
+    provider.complete.return_value = json.dumps(payload)
+    return provider
 
 
 def test_extract_json_strips_surrounding_prose():
@@ -30,19 +30,16 @@ def test_ocr_image_calls_model_and_parses_result(tmp_path):
         "notes": None,
     }
 
-    client = MagicMock()
-    client.messages.create.return_value = _fake_response(payload)
+    provider = _fake_provider(payload)
 
-    result = ocr_image(str(image_path), client=client)
+    result = ocr_image(str(image_path), provider=provider)
 
     assert result.extracted_text == "A process has its own memory."
     assert result.confidence == OcrConfidence.HIGH
-    client.messages.create.assert_called_once()
+    provider.complete.assert_called_once()
 
-    call_kwargs = client.messages.create.call_args.kwargs
-    content = call_kwargs["messages"][0]["content"]
-    assert content[0]["type"] == "image"
-    assert content[0]["source"]["media_type"] == "image/png"
+    call_kwargs = provider.complete.call_args.kwargs
+    assert call_kwargs["image"].media_type == "image/png"
 
 
 def test_illegible_without_notes_rejected():

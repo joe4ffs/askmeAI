@@ -1,12 +1,8 @@
 import json
-import os
-
-import anthropic
 
 from grader.presets import load_preset
+from grader.providers import ModelProvider, get_provider
 from grader.schema import GradingRequest, GradingResult
-
-MODEL = "claude-sonnet-5"
 
 SYSTEM_PROMPT = """You are a strict, fair grading assistant. You grade a student's answer against a \
 given rubric and reference answer. You must:
@@ -54,17 +50,10 @@ def _build_system_prompt(req: GradingRequest) -> str:
     return f"{SYSTEM_PROMPT}\nSubject-specific guidance for {preset.subject}:\n{preset.grading_instructions}"
 
 
-def grade(req: GradingRequest, client: anthropic.Anthropic | None = None) -> GradingResult:
-    client = client or anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+def grade(req: GradingRequest, provider: ModelProvider | None = None) -> GradingResult:
+    provider = provider or get_provider()
 
-    response = client.messages.create(
-        model=MODEL,
-        max_tokens=4096,
-        system=_build_system_prompt(req),
-        messages=[{"role": "user", "content": _build_user_prompt(req)}],
-    )
-
-    text = response.content[0].text
+    text = provider.complete(system=_build_system_prompt(req), prompt=_build_user_prompt(req))
     return GradingResult.model_validate_json(_extract_json(text))
 
 

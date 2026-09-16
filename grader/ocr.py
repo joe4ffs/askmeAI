@@ -1,14 +1,10 @@
 import base64
 import json
 import mimetypes
-import os
 from pathlib import Path
 
-import anthropic
-
+from grader.providers import ImageInput, ModelProvider, get_provider
 from grader.schema import OcrResult
-
-MODEL = "claude-sonnet-5"
 
 SYSTEM_PROMPT = """You are a careful transcriptionist. You are given an image of a handwritten \
 student answer. You must:
@@ -34,33 +30,17 @@ def _image_to_data_url(path: str) -> tuple[str, str]:
     return media_type, data
 
 
-def ocr_image(image_path: str, client: anthropic.Anthropic | None = None) -> OcrResult:
-    client = client or anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+def ocr_image(image_path: str, provider: ModelProvider | None = None) -> OcrResult:
+    provider = provider or get_provider()
     media_type, data = _image_to_data_url(image_path)
 
-    response = client.messages.create(
-        model=MODEL,
-        max_tokens=2048,
-        system=SYSTEM_PROMPT,
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {"type": "base64", "media_type": media_type, "data": data},
-                    },
-                    {
-                        "type": "text",
-                        "text": f"Transcribe the handwritten answer in this image. Return JSON "
-                        f"matching this schema:\n{json.dumps(OcrResult.model_json_schema(), indent=2)}",
-                    },
-                ],
-            }
-        ],
+    prompt = (
+        f"Transcribe the handwritten answer in this image. Return JSON matching this schema:\n"
+        f"{json.dumps(OcrResult.model_json_schema(), indent=2)}"
     )
-
-    text = response.content[0].text
+    text = provider.complete(
+        system=SYSTEM_PROMPT, prompt=prompt, image=ImageInput(media_type=media_type, base64_data=data)
+    )
     return OcrResult.model_validate_json(_extract_json(text))
 
 

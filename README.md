@@ -29,10 +29,12 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Set your Anthropic API key:
+No API key is required to run the full pipeline — see [Model providers](#model-providers) below. To
+grade with a real model, set a key for the provider you want:
 
 ```bash
 setx ANTHROPIC_API_KEY "sk-ant-..."   # Windows, persists across sessions
+setx OPENAI_API_KEY "sk-..."          # or, for the OpenAI provider
 ```
 
 ## Usage
@@ -68,6 +70,23 @@ file instead. `grade_file.py` OCRs it first (via `grader/ocr.py`) and prints the
   "student_answer_image_path": "data/samples/answer1.png"
 }
 ```
+
+## Model providers
+
+The engine and OCR both talk to a swappable `ModelProvider` (`grader/providers/`) instead of a
+hardcoded client, so grading logic never has to know which model is behind it:
+
+- `anthropic` — Claude, via `ANTHROPIC_API_KEY` (default when that key is set).
+- `openai` — GPT, via `OPENAI_API_KEY` (default when only that key is set).
+- `ollama` — a local Ollama server (https://ollama.com), no key required; needs a vision model
+  pulled locally (e.g. `ollama pull llava`).
+- `fake` — no key, no network, deterministic. Grades by keyword overlap between rubric criteria and
+  the student answer, and returns a placeholder OCR transcription. Used automatically when no
+  provider is configured and no API key is set, so the whole pipeline (CLI, eval script, tests) runs
+  out of the box. Not a real grader — good for wiring/plumbing, not for real scores.
+
+Pick a provider explicitly with the `AI_GRADER_PROVIDER` env var (`anthropic`, `openai`, `ollama`,
+or `fake`), or pass one directly: `grade(req, provider=get_provider("openai"))`.
 
 ## Subject presets
 
@@ -109,4 +128,5 @@ Eval case file format — see `data/eval/case_001.json`:
 pytest
 ```
 
-Schema and engine tests run without any API key (the engine test mocks the Anthropic client).
+No tests require an API key — engine/OCR tests mock a `ModelProvider` directly, and the `fake`
+provider is exercised in `tests/test_providers.py`.
