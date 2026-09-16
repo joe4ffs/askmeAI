@@ -1,0 +1,53 @@
+import json
+from unittest.mock import MagicMock
+
+from grader.engine import grade, _extract_json
+from grader.schema import GradingRequest, RubricItem
+
+
+def _fake_response(payload: dict) -> MagicMock:
+    response = MagicMock()
+    response.content = [MagicMock(text=json.dumps(payload))]
+    return response
+
+
+def test_extract_json_strips_surrounding_prose():
+    text = "Here is the result:\n{\"a\": 1}\nHope that helps!"
+    assert _extract_json(text) == '{"a": 1}'
+
+
+def test_grade_calls_model_and_parses_result():
+    req = GradingRequest(
+        question="What is the capital of France?",
+        reference_answer="Paris",
+        rubric=[RubricItem(criterion="Names the correct capital city", points=1.0)],
+        student_answer="Paris",
+        subject="geography",
+    )
+
+    payload = {
+        "total_score": 1.0,
+        "total_possible": 1.0,
+        "rubric_results": [
+            {
+                "criterion": "Names the correct capital city",
+                "status": "met",
+                "points_awarded": 1.0,
+                "points_possible": 1.0,
+                "evidence": "Student wrote 'Paris'",
+            }
+        ],
+        "overall_rationale": "Correct.",
+        "is_ambiguous": False,
+        "ambiguity_reason": None,
+        "corrected_answer": None,
+    }
+
+    client = MagicMock()
+    client.messages.create.return_value = _fake_response(payload)
+
+    result = grade(req, client=client)
+
+    assert result.total_score == 1.0
+    assert result.rubric_results[0].status == "met"
+    client.messages.create.assert_called_once()
