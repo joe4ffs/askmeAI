@@ -59,6 +59,30 @@
     return wrap;
   }
 
+  // Types `text` into a fresh assistant bubble a few characters at a time. Chunked (not
+  // char-by-char) so long replies don't take forever, and scrolls along as it grows.
+  function typewriteMessage(text, { charsPerTick = 3, intervalMs = 12 } = {}) {
+    const wrap = document.createElement("div");
+    wrap.className = "chat-msg assistant";
+    const bubble = document.createElement("div");
+    bubble.className = "msg-bubble";
+    wrap.appendChild(bubble);
+    chatLog.appendChild(wrap);
+
+    return new Promise((resolve) => {
+      let i = 0;
+      const timer = setInterval(() => {
+        i = Math.min(text.length, i + charsPerTick);
+        bubble.textContent = text.slice(0, i);
+        chatLog.scrollTop = chatLog.scrollHeight;
+        if (i >= text.length) {
+          clearInterval(timer);
+          resolve(wrap);
+        }
+      }, intervalMs);
+    });
+  }
+
   function clearChatLog() {
     chatLog.innerHTML = "";
   }
@@ -161,7 +185,7 @@
       }
       const isNewSession = sessionId !== data.session_id;
       setSessionId(data.session_id);
-      appendMessage("assistant", data.reply);
+      await typewriteMessage(data.reply);
       if (isNewSession) loadSessionList();
     } catch (err) {
       pending.remove();
