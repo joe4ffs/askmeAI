@@ -50,6 +50,7 @@ class FakeProvider:
                                 "points_awarded": 0,
                                 "points_possible": 1,
                                 "evidence": "FakeProvider does not perform real grading.",
+                                "box_2d": [100, 100, 150, 300],
                             }
                         ],
                         "explanation": "FakeProvider does not grade real scripts; set a real provider.",

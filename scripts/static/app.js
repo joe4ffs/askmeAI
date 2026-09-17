@@ -221,6 +221,9 @@
   const gradeStatus = document.getElementById("grade-status");
   const gradeEmpty = document.getElementById("grade-empty");
   const gradeResults = document.getElementById("grade-results");
+  const annotatedView = document.getElementById("annotated-view");
+  const annotatedImageWrap = document.getElementById("annotated-image-wrap");
+  const annotationDetail = document.getElementById("annotation-detail");
 
   let selectedFile = null;
 
@@ -325,6 +328,64 @@
     return div.innerHTML;
   }
 
+  // Renders the uploaded script image with a colored box overlaid per rubric criterion, at the
+  // box_2d the grader returned ([ymin, xmin, ymax, xmax], normalized 0-1000). Boxes are
+  // positioned as absolutely-placed % offsets over the image so they stay aligned at any zoom.
+  function renderAnnotatedImage(sourceImage, result) {
+    if (!sourceImage) {
+      annotatedView.classList.add("hidden");
+      return;
+    }
+
+    const boxable = [];
+    result.questions.forEach((q, qIdx) => {
+      q.criteria.forEach((c, cIdx) => {
+        if (c.box_2d && c.box_2d.length === 4) boxable.push({ ...c, qIdx, cIdx, qNum: qIdx + 1 });
+      });
+    });
+
+    if (boxable.length === 0) {
+      annotatedView.classList.add("hidden");
+      return;
+    }
+
+    annotatedView.classList.remove("hidden");
+    annotatedImageWrap.innerHTML = "";
+    annotationDetail.classList.add("hidden");
+
+    const img = document.createElement("img");
+    img.src = sourceImage;
+    img.className = "annotated-image";
+    annotatedImageWrap.appendChild(img);
+
+    boxable.forEach((c) => {
+      const [ymin, xmin, ymax, xmax] = c.box_2d;
+      const box = document.createElement("div");
+      box.className = `annotation-box status-${c.status}`;
+      box.style.top = `${ymin / 10}%`;
+      box.style.left = `${xmin / 10}%`;
+      box.style.width = `${(xmax - xmin) / 10}%`;
+      box.style.height = `${(ymax - ymin) / 10}%`;
+      box.title = `Q${c.qNum}: ${c.criterion}`;
+      box.addEventListener("click", () => {
+        annotatedImageWrap.querySelectorAll(".annotation-box.active").forEach((b) => b.classList.remove("active"));
+        box.classList.add("active");
+        annotationDetail.classList.remove("hidden");
+        annotationDetail.innerHTML = `
+          <div class="criterion-row status-${escapeHtml(c.status)}">
+            <div class="criterion-top">
+              <span class="criterion-status">${escapeHtml(c.status).replace("_", " ")}</span>
+              <span class="criterion-name">Q${c.qNum}: ${escapeHtml(c.criterion)}</span>
+              <span class="criterion-points">${c.points_awarded}/${c.points_possible}</span>
+            </div>
+            <div class="criterion-evidence">${escapeHtml(c.evidence)}</div>
+          </div>
+        `;
+      });
+      annotatedImageWrap.appendChild(box);
+    });
+  }
+
   gradeBtn.addEventListener("click", async () => {
     if (!selectedFile) return;
     gradeBtn.disabled = true;
@@ -344,6 +405,7 @@
         return;
       }
       setStatus("Done.", "ok");
+      renderAnnotatedImage(data.source_image, data.result);
       renderResult(data.result);
     } catch (err) {
       setStatus(`Connection error: ${err.message}`, "error");

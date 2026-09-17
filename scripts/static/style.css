@@ -221,6 +221,41 @@ main { flex: 1; overflow: hidden; min-height: 0; }
 
 .empty-state { color: var(--text-faint); text-align: center; margin-top: 3rem; }
 
+.annotated-view { margin-bottom: 1.5rem; }
+.annotated-view-header h3 { margin: 0 0 0.2rem; font-size: 1rem; }
+.annotated-image-wrap {
+  position: relative;
+  display: inline-block;
+  margin-top: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  max-width: 100%;
+  line-height: 0;
+}
+.annotated-image { display: block; max-width: 100%; height: auto; }
+.annotation-box {
+  position: absolute;
+  border: 2px solid var(--danger);
+  background: rgba(217, 97, 79, 0.12);
+  cursor: pointer;
+  transition: background 0.12s, box-shadow 0.12s;
+}
+.annotation-box:hover { background: rgba(217, 97, 79, 0.25); }
+.annotation-box.status-met { border-color: var(--success); background: rgba(127, 166, 80, 0.12); }
+.annotation-box.status-met:hover { background: rgba(127, 166, 80, 0.25); }
+.annotation-box.status-partially_met { border-color: var(--warn); background: rgba(214, 165, 60, 0.12); }
+.annotation-box.status-partially_met:hover { background: rgba(214, 165, 60, 0.25); }
+.annotation-box.status-not_applicable { border-color: var(--text-faint); background: rgba(125, 115, 100, 0.1); }
+.annotation-box.active { box-shadow: 0 0 0 2px var(--accent); }
+.annotation-detail {
+  margin-top: 0.75rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.annotation-detail .criterion-row { border-radius: 0; }
+
 .grade-results { display: flex; flex-direction: column; gap: 1rem; }
 .summary-card {
   background: var(--bg-elevated);

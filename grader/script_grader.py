@@ -28,6 +28,12 @@ image or PDF of a script that may contain one or more questions with the student
    paraphrase from the student's answer that specifically supports this judgment. Never award or
    deduct points without citing which criterion and why; "the answer is wrong" is not evidence,
    "third line: used addition instead of the product rule" is.
+3b. For every criterion, also set `box_2d` — the bounding box, as [ymin, xmin, ymax, xmax] normalized
+   to 0-1000 against the full image, tightly around the specific text on the page that is this
+   criterion's evidence (e.g. just the wrong number, not the whole line). This is what lets a human
+   see exactly where on the page each point was gained or lost, like a red pen. Only omit box_2d
+   (leave it null) if the criterion is not_applicable and there is genuinely no relevant text to point
+   at — every met/partially_met/missed criterion must have one.
 4. In `explanation`, summarize by referencing the criteria — don't just restate the verdict.
 5. If any criteria were missed or only partially met, provide a `correction`.
 6. Tag every question with a short `concept` (2-5 words) naming the underlying skill/topic it tests

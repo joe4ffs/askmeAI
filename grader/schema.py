@@ -39,6 +39,12 @@ class RubricItemResult(BaseModel):
     points_awarded: float = Field(ge=0)
     points_possible: float = Field(gt=0)
     evidence: str = Field(description="Quote or paraphrase from the student answer supporting this judgment")
+    box_2d: list[int] | None = Field(
+        default=None,
+        description="[ymin, xmin, ymax, xmax] normalized 0-1000, locating the exact text on the "
+        "source image this judgment's evidence refers to. Only set when grading from an image; "
+        "None for text-only grading.",
+    )
 
 
 class GradingResult(BaseModel):

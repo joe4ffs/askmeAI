@@ -71,6 +71,14 @@ python scripts/web_ui.py --port 8080
     total points are computed from these criteria, not asserted separately
     (`ScriptQuestionResult.criteria`, `.points_awarded`/`.points_possible`, `ScriptGradingResult.
     total_points_awarded`/`.total_points_possible`).
+  - **On-image annotation**: each criterion also carries a `box_2d` — `[ymin, xmin, ymax, xmax]`
+    normalized to 0-1000 — locating the exact text on the page that criterion's evidence refers to
+    (Gemini supports this as a grounded-detection prompting convention, verified accurate against
+    real handwriting-style images before building on it). The dashboard overlays these as colored
+    boxes directly on the uploaded script (green/amber/red by status); click one to see the
+    criterion, points, and evidence — the "red pen" view. Image uploads only (PDFs can't be
+    canvas-overlaid in a browser the same way, so `source_image` is omitted for those and the
+    dashboard falls back to the plain criteria list).
   - **Confidence + abstention**: every question also gets a `confidence` (high/medium/low) and, when
     the grader isn't sure — unclear handwriting, a nonstandard-but-possibly-valid method, a genuine
     judgment call — `needs_human_review=true` with a `review_reason` explaining what's uncertain,
