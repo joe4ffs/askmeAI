@@ -43,7 +43,15 @@ class FakeProvider:
                     {
                         "question_text": "[FakeProvider placeholder — no real script reading performed]",
                         "student_answer_as_written": "[FakeProvider does not perform real OCR]",
-                        "is_correct": False,
+                        "criteria": [
+                            {
+                                "criterion": "placeholder criterion",
+                                "status": "missed",
+                                "points_awarded": 0,
+                                "points_possible": 1,
+                                "evidence": "FakeProvider does not perform real grading.",
+                            }
+                        ],
                         "explanation": "FakeProvider does not grade real scripts; set a real provider.",
                         "correction": None,
                         "concept": "placeholder",

@@ -177,7 +177,7 @@ class Handler(BaseHTTPRequestHandler):
                 image_input, subject=subject or "general", storage=_storage
             )
 
-            self._send_json({"result": result.model_dump()})
+            self._send_json({"result": result.to_dict()})
         except ValidationError as exc:
             self._send_json({"error": f"Model returned an invalid result: {exc}"}, status=422)
         except Exception as exc:

@@ -57,12 +57,20 @@ python scripts/web_ui.py --port 8080
   field adds context and pulls in that subject's tracked weak areas. Each answer ends with a short
   follow-up question to keep the conversation going. Chats persist to `data/app.db` (SQLite) — the
   sidebar lists past sessions, click one to resume it, even after restarting the server.
-- **Script Grading** — upload an image or PDF of a full answer script. The model (no rubric
-  required) segments it into individual questions, judges each from its own subject knowledge, tags
-  the underlying concept, and marks which ones are wrong with a correction
-  (`grader/script_grader.py`). Wrong answers are logged per subject+concept; once a concept has more
-  misses than correct answers, it shows up as a "weak area" the tutor can reference in later chats
-  for that subject, and the tutor also calibrates explanation depth from recent accuracy.
+- **Script Grading** — upload an image or PDF of a full answer script. The model (no teacher-supplied
+  rubric required) segments it into individual questions, tags the underlying concept, and marks
+  which ones are wrong with a correction (`grader/script_grader.py`). Wrong answers are logged per
+  subject+concept; once a concept has more misses than correct answers, it shows up as a "weak area"
+  the tutor can reference in later chats for that subject, and the tutor also calibrates explanation
+  depth from recent accuracy.
+  - **Rubric-cited feedback**: for each question, the grader generates its own 2-4 specific criteria
+    (e.g. "correct formula used", "correct final answer", "units included") and judges each one
+    independently — met/partially_met/missed/not_applicable, with points and an `evidence` quote from
+    the student's actual answer. Every point gained or lost cites a specific criterion instead of a
+    bare "wrong" verdict — the basis a student could actually appeal. `is_correct` and per-question/
+    total points are computed from these criteria, not asserted separately
+    (`ScriptQuestionResult.criteria`, `.points_awarded`/`.points_possible`, `ScriptGradingResult.
+    total_points_awarded`/`.total_points_possible`).
   - **Confidence + abstention**: every question also gets a `confidence` (high/medium/low) and, when
     the grader isn't sure — unclear handwriting, a nonstandard-but-possibly-valid method, a genuine
     judgment call — `needs_human_review=true` with a `review_reason` explaining what's uncertain,

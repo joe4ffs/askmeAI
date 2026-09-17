@@ -267,12 +267,13 @@
     gradeResults.classList.remove("hidden");
     gradeResults.innerHTML = "";
 
-    const flaggedCount = result.questions.filter((q) => q.needs_human_review).length;
+    const flaggedCount = result.flagged_count ?? result.questions.filter((q) => q.needs_human_review).length;
 
     const summary = document.createElement("div");
     summary.className = "summary-card";
     summary.innerHTML = `
       <div class="summary-score">${escapeHtml(result.score_estimate)}</div>
+      <div class="summary-points">${result.total_points_awarded} / ${result.total_points_possible} points across all cited criteria</div>
       <div class="summary-text">${escapeHtml(result.overall_summary)}</div>
       ${
         flaggedCount > 0
@@ -285,9 +286,22 @@
     result.questions.forEach((q, i) => {
       const card = document.createElement("div");
       card.className = `q-card ${q.is_correct ? "correct" : "incorrect"} ${q.needs_human_review ? "flagged" : ""}`;
+      const criteriaHtml = q.criteria
+        .map(
+          (c) => `
+        <div class="criterion-row status-${escapeHtml(c.status)}">
+          <div class="criterion-top">
+            <span class="criterion-status">${escapeHtml(c.status).replace("_", " ")}</span>
+            <span class="criterion-name">${escapeHtml(c.criterion)}</span>
+            <span class="criterion-points">${c.points_awarded}/${c.points_possible}</span>
+          </div>
+          <div class="criterion-evidence">${escapeHtml(c.evidence)}</div>
+        </div>`
+        )
+        .join("");
       card.innerHTML = `
         <div class="q-header">
-          <div class="q-text">Q${i + 1}. ${escapeHtml(q.question_text)}</div>
+          <div class="q-text">Q${i + 1}. ${escapeHtml(q.question_text)} <span class="q-points">(${q.points_awarded}/${q.points_possible})</span></div>
           <div class="q-badges">
             ${q.needs_human_review ? `<span class="q-badge review">Needs Review</span>` : ""}
             <span class="q-badge confidence-${escapeHtml(q.confidence)}">${escapeHtml(q.confidence)} confidence</span>
@@ -296,6 +310,7 @@
         </div>
         <div class="q-concept">${escapeHtml(q.concept)}</div>
         <div class="q-answer"><strong>Student wrote:</strong> ${escapeHtml(q.student_answer_as_written)}</div>
+        <div class="criteria-list">${criteriaHtml}</div>
         <div class="q-explain">${escapeHtml(q.explanation)}</div>
         ${q.correction ? `<div class="q-correction"><strong>Correction:</strong> ${escapeHtml(q.correction)}</div>` : ""}
         ${q.needs_human_review ? `<div class="q-review-reason"><strong>Why flagged:</strong> ${escapeHtml(q.review_reason)}</div>` : ""}

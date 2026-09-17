@@ -229,6 +229,7 @@ main { flex: 1; overflow: hidden; min-height: 0; }
   padding: 1.1rem 1.3rem;
 }
 .summary-score { font-size: 1.6rem; font-weight: 800; color: var(--accent); }
+.summary-points { color: var(--text-faint); font-size: 0.85rem; margin-top: 0.15rem; }
 .summary-text { color: var(--text-dim); margin-top: 0.3rem; }
 .summary-flag { margin-top: 0.6rem; font-size: 0.85rem; font-weight: 600; color: var(--warn); }
 .summary-flag.ok { color: var(--success); }
@@ -244,6 +245,7 @@ main { flex: 1; overflow: hidden; min-height: 0; }
 .q-card.flagged { border-left-color: var(--warn); box-shadow: 0 0 0 1px rgba(214, 165, 60, 0.25); }
 .q-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .q-text { font-weight: 600; }
+.q-points { font-weight: 400; color: var(--text-faint); font-size: 0.85rem; }
 .q-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 0.3rem; flex-shrink: 0; }
 .q-badge {
   font-size: 0.72rem;
@@ -284,6 +286,34 @@ main { flex: 1; overflow: hidden; min-height: 0; }
 }
 .q-answer { margin-top: 0.5rem; color: var(--text-dim); font-size: 0.9rem; }
 .q-answer strong { color: var(--text); }
+
+.criteria-list { margin-top: 0.65rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.criterion-row {
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  border-left: 3px solid var(--border);
+  background: var(--bg-inset);
+}
+.criterion-row.status-met { border-left-color: var(--success); }
+.criterion-row.status-partially_met { border-left-color: var(--warn); }
+.criterion-row.status-missed { border-left-color: var(--danger); }
+.criterion-row.status-not_applicable { border-left-color: var(--text-faint); opacity: 0.7; }
+.criterion-top { display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.85rem; }
+.criterion-status {
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.criterion-row.status-met .criterion-status { color: var(--success); }
+.criterion-row.status-partially_met .criterion-status { color: var(--warn); }
+.criterion-row.status-missed .criterion-status { color: var(--danger); }
+.criterion-name { font-weight: 600; color: var(--text); flex: 1; }
+.criterion-points { font-size: 0.8rem; color: var(--text-faint); flex-shrink: 0; }
+.criterion-evidence { margin-top: 0.2rem; font-size: 0.82rem; color: var(--text-dim); font-style: italic; }
+
 .q-explain { margin-top: 0.5rem; font-size: 0.88rem; color: var(--text-dim); }
 .q-correction {
   margin-top: 0.6rem;
