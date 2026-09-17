@@ -1,0 +1,10 @@
+{
+  "case_id": "case_006",
+  "trap": "right_answer_wrong_reasoning",
+  "subject": "operating_systems",
+  "question": "Why does using multiple threads instead of multiple processes make inter-task communication faster?",
+  "student_answer": "Threads are faster because threads are better than processes and everyone knows threads win. Processes are old technology.",
+  "expect_correct": false,
+  "expect_flagged": false,
+  "notes": "Reaches a defensible-sounding conclusion but through pure assertion, not the actual mechanism (threads within a process share the same memory address space, so no IPC/serialization is needed). No correct reasoning was shown — should not receive credit just because the concluding claim direction happens to align with the real answer."
+}

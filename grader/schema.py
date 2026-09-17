@@ -225,3 +225,49 @@ class EvalCase(BaseModel):
     @property
     def human_total_score(self) -> float:
         return sum(j.points_awarded for j in self.human_judgments)
+
+
+class AdversarialTrap(str, Enum):
+    """The category of trick an adversarial test case is probing for."""
+
+    RIGHT_ANSWER_WRONG_REASONING = "right_answer_wrong_reasoning"
+    KEYWORD_STUFFED_NONSENSE = "keyword_stuffed_nonsense"
+    CONFIDENT_BUT_IRRELEVANT = "confident_but_irrelevant"
+    NONSTANDARD_VALID_METHOD = "nonstandard_valid_method"
+    ILLEGIBLE_OR_GARBLED = "illegible_or_garbled"
+
+
+class AdversarialCase(BaseModel):
+    """One deliberately tricky question+answer pair, and what a robust grader should do with it.
+
+    Unlike EvalCase (which checks numeric agreement with a human-graded score), this checks
+    behavioral properties — did the grader catch the trick, or did it get fooled / unfairly punish
+    a valid-but-unusual answer / confidently guess on something it should have flagged.
+    """
+
+    case_id: str
+    trap: AdversarialTrap
+    question: str
+    student_answer: str
+    subject: str = "general"
+    expect_correct: bool | None = Field(
+        default=None,
+        description="If set, the grader's is_correct verdict for this question must match this to "
+        "pass (e.g. False for nonsense/irrelevant answers, True for a valid alternate method). "
+        "None means correctness isn't the thing being checked (e.g. illegibility cases).",
+    )
+    expect_flagged: bool | None = Field(
+        default=None,
+        description="If set, needs_human_review must match this. Traps designed to be genuinely "
+        "ambiguous (nonstandard method, illegible) should expect True; clear-cut traps (nonsense, "
+        "irrelevant) should expect False — a grader that hedges on everything is gaming the metric "
+        "as much as one that never hedges.",
+    )
+    render_illegible: bool = Field(
+        default=False,
+        description="If true, the eval runner renders this case's answer with low contrast and "
+        "jitter to simulate genuinely hard-to-read handwriting, instead of clean typed text — for "
+        "cases where the trap is visual illegibility, not just nonsensical (but clearly legible) "
+        "content.",
+    )
+    notes: str = Field(description="What this case is testing and why a naive grader might fail it")

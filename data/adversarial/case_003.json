@@ -1,0 +1,10 @@
+{
+  "case_id": "case_003",
+  "trap": "confident_but_irrelevant",
+  "subject": "math",
+  "question": "What is the derivative of x^2?",
+  "student_answer": "The derivative measures the area under a curve using integration, which is calculated by finding the antiderivative and evaluating it at the bounds using the fundamental theorem of calculus.",
+  "expect_correct": false,
+  "expect_flagged": false,
+  "notes": "The answer is fluent, confident, and uses correct calculus terminology — but it describes integration, not differentiation, and never answers the actual question (2x). A grader that rewards confident, technical-sounding prose without checking it actually answers what was asked would be fooled."
+}

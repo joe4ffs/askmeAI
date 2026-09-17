@@ -1,0 +1,11 @@
+{
+  "case_id": "case_005",
+  "trap": "illegible_or_garbled",
+  "subject": "math",
+  "question": "What is 7 times 8?",
+  "student_answer": "5&%6 ?!x q#@ w9$$3 // illegible scrawl ~~~ ### unclear marks",
+  "expect_correct": null,
+  "expect_flagged": true,
+  "render_illegible": true,
+  "notes": "The answer is rendered with low contrast, tiny font, and overlapping jitter (see render_case_image's illegible mode) to simulate genuinely hard-to-read handwriting, rather than relying on nonsensical-but-clearly-typed text — a model can correctly and confidently judge 'this text, whatever it says, is gibberish' without the image itself being visually ambiguous, which isn't the same failure mode as illegibility. A grader must not confidently guess a transcription of visually unclear input — it should flag this for human review rather than silently picking an interpretation. expect_correct is left unset since correctness isn't the point; only the review flag is."
+}

@@ -178,6 +178,41 @@ Eval case file format — see `data/eval/case_001.json`:
 }
 ```
 
+## Adversarial eval suite
+
+A standing set of deliberately tricky question+answer pairs (`data/adversarial/`), checking
+*behavioral* robustness rather than numeric score agreement — does the grader get fooled by a
+confident-sounding wrong answer, does it unfairly penalize a valid-but-unusual method, does it
+flag genuinely illegible input instead of confidently guessing. Each case is rendered as an image
+(so grading goes through the real vision pipeline `grade_script_input()` uses, not a text
+shortcut) via `scripts/run_adversarial_eval.py`:
+
+```bash
+python scripts/run_adversarial_eval.py data/adversarial --delay 5 --out adversarial_results.csv
+```
+
+Trap categories (`grader/schema.py: AdversarialTrap`):
+
+- `right_answer_wrong_reasoning` — correct final answer, but the shown work doesn't actually derive it
+- `keyword_stuffed_nonsense` — every relevant term present, zero coherent content
+- `confident_but_irrelevant` — fluent, accurate-sounding, answers a different question entirely
+- `nonstandard_valid_method` — correct answer via an unusual but legitimate approach (should NOT be
+  marked wrong for not matching the "expected" method)
+- `illegible_or_garbled` — visually degraded input (low contrast, jitter, noise — see
+  `render_case_image`'s `render_illegible` path); should be flagged for human review, not confidently
+  transcribed and graded
+
+Each case declares `expect_correct` and/or `expect_flagged` — what a robust grader should output —
+and the run reports a pass rate per trap type plus the specific failures.
+
+**Current finding** (run against `gemini-3.1-flash-lite`): 5/6 cases passed (one 503
+API error on that run, excluded). The one reproducible failure — `case_005`
+(`illegible_or_garbled`) — is genuinely informative: the model transcribed visually degraded,
+jittered, low-contrast text with `confidence=high` and `needs_human_review=false`, i.e. it did not
+recognize its own transcription as uncertain even though the input was deliberately hard to read.
+This is a real, measured limitation of the confidence/abstention mechanism (see
+[Script Grading](#web-dashboard) above), not a test-harness artifact — the suite is doing its job.
+
 ## Tests
 
 ```bash

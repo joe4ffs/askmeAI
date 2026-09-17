@@ -1,0 +1,10 @@
+{
+  "case_id": "case_002",
+  "trap": "keyword_stuffed_nonsense",
+  "subject": "operating_systems",
+  "question": "Explain the difference between a process and a thread.",
+  "student_answer": "Process thread memory address space stack register scheduler context switch kernel mode user mode process thread memory concurrency parallelism thread process memory stack.",
+  "expect_correct": false,
+  "expect_flagged": false,
+  "notes": "Every relevant vocabulary word is present, which could fool a keyword-overlap or embedding-similarity heuristic, but there is no coherent explanation — no sentence actually states a fact. A real grader should recognize this has zero explanatory content despite high lexical overlap with the expected answer."
+}

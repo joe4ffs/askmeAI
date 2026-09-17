@@ -1,0 +1,10 @@
+{
+  "case_id": "case_007",
+  "trap": "confident_but_irrelevant",
+  "subject": "english",
+  "question": "What is the difference between a metaphor and a simile?",
+  "student_answer": "Personification is a literary device where human qualities are given to non-human things, such as 'the wind whispered through the trees.' It is commonly used in poetry to create vivid imagery and emotional resonance.",
+  "expect_correct": false,
+  "expect_flagged": false,
+  "notes": "Well-written, accurate description of a real literary device — but of personification, not metaphor or simile. Answers a plausible-sounding but different question entirely; should not be graded correct just because it's confident, fluent, and on-topic-adjacent."
+}

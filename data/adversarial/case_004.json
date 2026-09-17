@@ -1,0 +1,10 @@
+{
+  "case_id": "case_004",
+  "trap": "nonstandard_valid_method",
+  "subject": "math",
+  "question": "Find the roots of x^2 - 5x + 6 = 0.",
+  "student_answer": "I completed the square: x^2 - 5x + 6 = 0 -> x^2 - 5x = -6 -> x^2 - 5x + 6.25 = 0.25 -> (x - 2.5)^2 = 0.25 -> x - 2.5 = ±0.5 -> x = 3 or x = 2.",
+  "expect_correct": true,
+  "expect_flagged": null,
+  "notes": "The expected/standard method here is factoring (x-2)(x-3)=0, but the student used completing the square instead — a fully valid alternate method that arrives at the same correct roots (x=2, x=3). A grader that penalizes for not matching the 'expected' method fails this case; a grader that only checks factoring pattern-matches would too. expect_flagged is left unset since either high-confidence-correct or a review flag acknowledging the unusual method are both reasonable, defensible outcomes — what must NOT happen is being marked wrong."
+}
