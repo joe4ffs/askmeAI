@@ -2,7 +2,7 @@ import os
 
 from openai import OpenAI
 
-from grader.providers.base import ImageInput
+from grader.providers.base import ChatMessage, ImageInput
 
 MODEL = "gpt-4.1"
 
@@ -29,5 +29,13 @@ class OpenAIProvider:
                 {"role": "system", "content": system},
                 {"role": "user", "content": content},
             ],
+        )
+        return response.choices[0].message.content
+
+    def complete_chat(self, system: str, history: list[ChatMessage]) -> str:
+        response = self._client.chat.completions.create(
+            model=self._model,
+            messages=[{"role": "system", "content": system}]
+            + [{"role": msg.role, "content": msg.content} for msg in history],
         )
         return response.choices[0].message.content

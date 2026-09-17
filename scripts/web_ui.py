@@ -1,7 +1,9 @@
-"""Minimal local web UI for interactive grading — no framework dependency.
+"""Local web dashboard: academic tutor chat + script grading, no framework dependency.
 
-Serves a form where you can paste a question, reference answer, rubric, and student
-answer, hit "Grade", and see the GradingResult rendered on the same page.
+Two modes served from one page:
+  - Tutor chat: free-form academic Q&A with conversation memory.
+  - Script grading: upload an image/PDF of a filled-out script; the AI segments it into
+    questions, grades each from its own knowledge, and marks where answers are wrong.
 
 Usage:
     python scripts/web_ui.py
@@ -9,155 +11,155 @@ Usage:
 """
 
 import argparse
-import html
+import base64
 import json
 import sys
+import uuid
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pydantic import ValidationError
 
-from grader.engine import grade
-from grader.schema import GradingRequest, RubricItem
+from grader.providers import ImageInput
+from grader.providers.base import ChatMessage
+from grader.script_grader import grade_script_input
+from grader.tutor import ask_tutor
 
-PAGE_TEMPLATE = """<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>AI Grader</title>
-<style>
-  body {{ font-family: system-ui, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }}
-  label {{ display: block; font-weight: 600; margin-top: 1rem; }}
-  textarea, input {{ width: 100%; box-sizing: border-box; font-family: inherit; font-size: 1rem;
-                      padding: 0.5rem; margin-top: 0.25rem; }}
-  textarea {{ min-height: 4rem; }}
-  button {{ margin-top: 1.5rem; padding: 0.6rem 1.5rem; font-size: 1rem; cursor: pointer; }}
-  .hint {{ color: #666; font-size: 0.85rem; }}
-  .result {{ margin-top: 2rem; padding: 1rem; border: 1px solid #ccc; border-radius: 6px; }}
-  .score {{ font-size: 1.5rem; font-weight: 700; }}
-  .ambiguous {{ color: #b45309; }}
-  .criterion {{ margin: 0.75rem 0; padding: 0.5rem; background: #f7f7f7; border-radius: 4px; }}
-  .status-met {{ color: #15803d; }}
-  .status-partially_met {{ color: #b45309; }}
-  .status-missed {{ color: #b91c1c; }}
-  .error {{ color: #b91c1c; background: #fee; padding: 1rem; border-radius: 6px; }}
-</style>
-</head>
-<body>
-<h1>AI Grader</h1>
-<form method="post">
-  <label>Subject <span class="hint">(matches presets/&lt;subject&gt;.json, e.g. math, english, operating_systems)</span></label>
-  <input name="subject" value="{subject}">
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+PRESETS_DIR = Path(__file__).resolve().parent.parent / "presets"
 
-  <label>Question</label>
-  <textarea name="question" required>{question}</textarea>
-
-  <label>Reference answer</label>
-  <textarea name="reference_answer" required>{reference_answer}</textarea>
-
-  <label>Rubric <span class="hint">(one criterion per line, format: "points | criterion text")</span></label>
-  <textarea name="rubric" required placeholder="2 | States that a process has its own memory space">{rubric}</textarea>
-
-  <label>Student answer</label>
-  <textarea name="student_answer" required>{student_answer}</textarea>
-
-  <button type="submit">Grade</button>
-</form>
-{result}
-</body>
-</html>
-"""
+# In-memory chat session store: {session_id: [ChatMessage, ...]}. Local single-user tool —
+# no persistence or multi-process concerns.
+_SESSIONS: dict[str, list[ChatMessage]] = {}
 
 
-def _parse_rubric(raw: str) -> list[RubricItem]:
-    items = []
-    for line in raw.strip().splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        points_str, _, criterion = line.partition("|")
-        items.append(RubricItem(points=float(points_str.strip()), criterion=criterion.strip()))
-    return items
-
-
-def _render_result(req: GradingRequest) -> str:
-    try:
-        result = grade(req)
-    except (ValidationError, ValueError) as exc:
-        return f'<div class="error"><strong>Grading failed:</strong> {html.escape(str(exc))}</div>'
-    except Exception as exc:
-        return f'<div class="error"><strong>Provider error:</strong> {html.escape(str(exc))}</div>'
-
-    criteria_html = "\n".join(
-        f'<div class="criterion"><span class="status-{item.status.value}">[{item.status.value}]</span> '
-        f"<strong>{html.escape(item.criterion)}</strong> "
-        f"— {item.points_awarded}/{item.points_possible} pts<br>"
-        f'<span class="hint">{html.escape(item.evidence)}</span></div>'
-        for item in result.rubric_results
-    )
-    ambiguous_html = (
-        f'<p class="ambiguous">⚠ Flagged ambiguous: {html.escape(result.ambiguity_reason or "")}</p>'
-        if result.is_ambiguous
-        else ""
-    )
-    corrected_html = (
-        f"<p><strong>Suggested correction:</strong> {html.escape(result.corrected_answer)}</p>"
-        if result.corrected_answer
-        else ""
-    )
-    return f"""<div class="result">
-      <div class="score">{result.total_score} / {result.total_possible}</div>
-      <p>{html.escape(result.overall_rationale)}</p>
-      {ambiguous_html}
-      {criteria_html}
-      {corrected_html}
-    </div>"""
+def _known_subjects() -> list[str]:
+    return sorted(p.stem for p in PRESETS_DIR.glob("*.json"))
 
 
 class Handler(BaseHTTPRequestHandler):
-    def _send_page(self, fields: dict, result_html: str = "") -> None:
-        body = PAGE_TEMPLATE.format(
-            subject=html.escape(fields.get("subject", "general")),
-            question=html.escape(fields.get("question", "")),
-            reference_answer=html.escape(fields.get("reference_answer", "")),
-            rubric=html.escape(fields.get("rubric", "")),
-            student_answer=html.escape(fields.get("student_answer", "")),
-            result=result_html,
-        ).encode("utf-8")
+    def _send_json(self, payload: dict, status: int = 200) -> None:
+        body = json.dumps(payload).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _send_file(self, path: Path, content_type: str) -> None:
+        body = path.read_bytes()
         self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
 
     def do_GET(self) -> None:
-        self._send_page({})
+        if self.path == "/" or self.path == "/index.html":
+            self._send_file(STATIC_DIR / "index.html", "text/html; charset=utf-8")
+        elif self.path == "/app.js":
+            self._send_file(STATIC_DIR / "app.js", "application/javascript; charset=utf-8")
+        elif self.path == "/style.css":
+            self._send_file(STATIC_DIR / "style.css", "text/css; charset=utf-8")
+        elif self.path == "/api/subjects":
+            self._send_json({"subjects": _known_subjects()})
+        else:
+            self.send_response(404)
+            self.end_headers()
 
     def do_POST(self) -> None:
+        if self.path == "/api/chat":
+            self._handle_chat()
+        elif self.path == "/api/grade-script":
+            self._handle_grade_script()
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def _read_json_body(self) -> dict:
         length = int(self.headers.get("Content-Length", 0))
-        raw = self.rfile.read(length).decode("utf-8")
-        parsed = parse_qs(raw)
-        fields = {k: v[0] for k, v in parsed.items()}
+        return json.loads(self.rfile.read(length).decode("utf-8"))
 
+    def _handle_chat(self) -> None:
         try:
-            req = GradingRequest(
-                subject=fields.get("subject") or "general",
-                question=fields.get("question", ""),
-                reference_answer=fields.get("reference_answer", ""),
-                rubric=_parse_rubric(fields.get("rubric", "")),
-                student_answer=fields.get("student_answer", ""),
-            )
-        except (ValidationError, ValueError) as exc:
-            self._send_page(fields, f'<div class="error"><strong>Invalid input:</strong> {html.escape(str(exc))}</div>')
-            return
+            payload = self._read_json_body()
+            session_id = payload.get("session_id") or str(uuid.uuid4())
+            message = payload["message"]
 
-        self._send_page(fields, _render_result(req))
+            history = _SESSIONS.setdefault(session_id, [])
+            history.append(ChatMessage(role="user", content=message))
+
+            reply = ask_tutor(history)
+            history.append(ChatMessage(role="assistant", content=reply))
+
+            self._send_json({"session_id": session_id, "reply": reply})
+        except Exception as exc:
+            self._send_json({"error": str(exc)}, status=500)
+
+    def _handle_grade_script(self) -> None:
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            file_bytes = _extract_multipart_file(body, self.headers.get("Content-Type", ""))
+            media_type = _sniff_media_type(file_bytes)
+
+            image_input = ImageInput(
+                media_type=media_type, base64_data=base64.standard_b64encode(file_bytes).decode("utf-8")
+            )
+            result = grade_script_input(image_input)
+
+            self._send_json({"result": result.model_dump()})
+        except ValidationError as exc:
+            self._send_json({"error": f"Model returned an invalid result: {exc}"}, status=422)
+        except Exception as exc:
+            self._send_json({"error": str(exc)}, status=500)
 
     def log_message(self, format: str, *args) -> None:
         print(f"{self.address_string()} - {format % args}", file=sys.stderr)
+
+
+def _extract_multipart_file(body: bytes, content_type: str) -> bytes:
+    """Pull the first file part's bytes out of a multipart/form-data body.
+
+    Minimal by design (single "file" field, no charset/transfer-encoding handling) — the
+    dashboard's own upload form is the only client, and stdlib's `cgi` module (which did this
+    generically) is deprecated and removed in Python 3.13.
+    """
+    if "multipart/form-data" not in content_type:
+        raise ValueError("Expected multipart/form-data upload")
+    marker = "boundary="
+    idx = content_type.find(marker)
+    if idx == -1:
+        raise ValueError("Missing multipart boundary")
+    boundary = content_type[idx + len(marker) :].strip('"').encode("utf-8")
+
+    for part in body.split(b"--" + boundary):
+        if b'name="file"' not in part:
+            continue
+        header_end = part.find(b"\r\n\r\n")
+        if header_end == -1:
+            continue
+        data = part[header_end + 4 :]
+        if data.endswith(b"\r\n"):
+            data = data[:-2]
+        return data
+    raise ValueError("No file uploaded")
+
+
+def _sniff_media_type(data: bytes) -> str:
+    if data[:4] == b"%PDF":
+        return "application/pdf"
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    if data[:3] == b"\xff\xd8\xff":
+        return "image/jpeg"
+    if data[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    raise ValueError("Unrecognized file type — upload a PNG, JPEG, GIF, WEBP, or PDF")
 
 
 def main() -> None:

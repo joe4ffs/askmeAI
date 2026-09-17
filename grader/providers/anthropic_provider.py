@@ -2,7 +2,7 @@ import os
 
 import anthropic
 
-from grader.providers.base import ImageInput
+from grader.providers.base import ChatMessage, ImageInput
 
 MODEL = "claude-sonnet-5"
 
@@ -32,5 +32,14 @@ class AnthropicProvider:
             max_tokens=4096,
             system=system,
             messages=[{"role": "user", "content": content}],
+        )
+        return response.content[0].text
+
+    def complete_chat(self, system: str, history: list[ChatMessage]) -> str:
+        response = self._client.messages.create(
+            model=self._model,
+            max_tokens=4096,
+            system=system,
+            messages=[{"role": msg.role, "content": msg.content} for msg in history],
         )
         return response.content[0].text

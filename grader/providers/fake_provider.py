@@ -1,7 +1,7 @@
 import json
 import re
 
-from grader.providers.base import ImageInput
+from grader.providers.base import ChatMessage, ImageInput
 
 
 class FakeProvider:
@@ -14,6 +14,8 @@ class FakeProvider:
     """
 
     def complete(self, system: str, prompt: str, image: ImageInput | None = None) -> str:
+        if "questions" in prompt and "student_answer_as_written" in prompt:
+            return self._fake_script_grade(image)
         if image is not None:
             return json.dumps(
                 {
@@ -24,6 +26,30 @@ class FakeProvider:
                 }
             )
         return self._fake_grade(prompt)
+
+    def complete_chat(self, system: str, history: list[ChatMessage]) -> str:
+        last_user = history[-1].content if history else ""
+        return (
+            f"[FakeProvider placeholder tutor response — no real model configured]\n\n"
+            f"You asked: {last_user!r}. Set a real provider (e.g. GEMINI_API_KEY) to get an actual answer."
+        )
+
+    def _fake_script_grade(self, image: ImageInput | None) -> str:
+        return json.dumps(
+            {
+                "questions": [
+                    {
+                        "question_text": "[FakeProvider placeholder — no real script reading performed]",
+                        "student_answer_as_written": "[FakeProvider does not perform real OCR]",
+                        "is_correct": False,
+                        "explanation": "FakeProvider does not grade real scripts; set a real provider.",
+                        "correction": None,
+                    }
+                ],
+                "overall_summary": "Graded by FakeProvider (placeholder, not a real evaluation).",
+                "score_estimate": "0/1",
+            }
+        )
 
     def _fake_grade(self, prompt: str) -> str:
         rubric_items = re.findall(r"- \(([\d.]+) pts\) (.+)", prompt)

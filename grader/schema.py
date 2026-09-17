@@ -106,6 +106,22 @@ class GradingRequest(BaseModel):
         return self
 
 
+class ScriptQuestionResult(BaseModel):
+    question_text: str = Field(description="The question as found in the script, verbatim or paraphrased")
+    student_answer_as_written: str = Field(description="The student's answer to this question, transcribed")
+    is_correct: bool
+    explanation: str = Field(description="Why the answer is correct or incorrect")
+    correction: str | None = Field(
+        default=None, description="The correct answer/fix, if is_correct is False; otherwise None"
+    )
+
+
+class ScriptGradingResult(BaseModel):
+    questions: list[ScriptQuestionResult]
+    overall_summary: str = Field(description="Short summary of overall performance across the script")
+    score_estimate: str = Field(description="e.g. '7/10 questions correct' — a rough tally, not a rubric score")
+
+
 class HumanRubricJudgment(BaseModel):
     criterion: str = Field(description="The rubric criterion being judged, verbatim from the rubric")
     status: RubricItemStatus

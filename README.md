@@ -44,20 +44,24 @@ real model without setting up billing, get a free Gemini key at https://aistudio
 
 ## Usage
 
-### Web UI
+### Web dashboard
 
-For interactive grading without editing JSON files, run a local web form (no framework dependency,
-pure stdlib `http.server`):
+A local dashboard (no framework dependency, pure stdlib `http.server`) with two modes:
 
 ```bash
 python scripts/web_ui.py            # http://127.0.0.1:8000
 python scripts/web_ui.py --port 8080
 ```
 
-Fill in subject, question, reference answer, rubric (one `points | criterion` per line), and student
-answer, then submit to see the graded result on the same page. Uses whichever provider `get_provider()`
-resolves to (see [Model providers](#model-providers)) — set `GEMINI_API_KEY` etc. before starting the
-server to grade with a real model instead of the `fake` provider.
+- **Tutor Chat** — open-ended academic Q&A with conversation memory (`grader/tutor.py`). Ask
+  anything; an optional subject field adds context to the prompt.
+- **Script Grading** — upload an image or PDF of a full answer script. The model (no rubric
+  required) segments it into individual questions, judges each from its own subject knowledge,
+  and marks which ones are wrong with a correction (`grader/script_grader.py`).
+
+Uses whichever provider `get_provider()` resolves to (see [Model providers](#model-providers)) — set
+`GEMINI_API_KEY` etc. before starting the server to use a real model instead of the `fake` provider,
+which returns placeholder text/results for both modes so the UI is exercisable offline.
 
 ### CLI
 
@@ -95,8 +99,10 @@ file instead. `grade_file.py` OCRs it first (via `grader/ocr.py`) and prints the
 
 ## Model providers
 
-The engine and OCR both talk to a swappable `ModelProvider` (`grader/providers/`) instead of a
-hardcoded client, so grading logic never has to know which model is behind it:
+The engine, OCR, script grading, and tutor chat all talk to a swappable `ModelProvider`
+(`grader/providers/`) instead of a hardcoded client, so grading/chat logic never has to know which
+model is behind it. Each provider implements `complete()` (single-turn, optional image) and
+`complete_chat()` (multi-turn, for the tutor):
 
 - `anthropic` — Claude, via `ANTHROPIC_API_KEY` (default when that key is set). Requires billing.
 - `openai` — GPT, via `OPENAI_API_KEY` (default when set and no Anthropic key). Requires billing.

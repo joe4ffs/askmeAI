@@ -2,7 +2,7 @@ import os
 
 import requests
 
-from grader.providers.base import ImageInput
+from grader.providers.base import ChatMessage, ImageInput
 
 MODEL = "llava"
 DEFAULT_HOST = "http://localhost:11434"
@@ -31,3 +31,14 @@ class OllamaProvider:
         response = requests.post(f"{self._host}/api/generate", json=payload, timeout=120)
         response.raise_for_status()
         return response.json()["response"]
+
+    def complete_chat(self, system: str, history: list[ChatMessage]) -> str:
+        payload = {
+            "model": self._model,
+            "messages": [{"role": "system", "content": system}]
+            + [{"role": msg.role, "content": msg.content} for msg in history],
+            "stream": False,
+        }
+        response = requests.post(f"{self._host}/api/chat", json=payload, timeout=120)
+        response.raise_for_status()
+        return response.json()["message"]["content"]

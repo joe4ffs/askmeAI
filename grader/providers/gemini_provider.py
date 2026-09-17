@@ -4,7 +4,7 @@ import os
 from google import genai
 from google.genai import types
 
-from grader.providers.base import ImageInput
+from grader.providers.base import ChatMessage, ImageInput
 
 MODEL = "gemini-3.6-flash"
 
@@ -30,6 +30,21 @@ class GeminiProvider:
         response = self._client.models.generate_content(
             model=self._model,
             contents=[types.Content(role="user", parts=parts)],
+            config=types.GenerateContentConfig(system_instruction=system),
+        )
+        return response.text
+
+    def complete_chat(self, system: str, history: list[ChatMessage]) -> str:
+        contents = [
+            types.Content(
+                role="model" if msg.role == "assistant" else "user",
+                parts=[types.Part.from_text(text=msg.content)],
+            )
+            for msg in history
+        ]
+        response = self._client.models.generate_content(
+            model=self._model,
+            contents=contents,
             config=types.GenerateContentConfig(system_instruction=system),
         )
         return response.text

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Grader</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">◆</span>
+      <span class="brand-name">AI Grader</span>
+    </div>
+    <nav class="mode-switch" role="tablist">
+      <button class="mode-btn active" data-mode="tutor" role="tab" aria-selected="true">Tutor Chat</button>
+      <button class="mode-btn" data-mode="grade" role="tab" aria-selected="false">Script Grading</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- TUTOR MODE -->
+    <section id="panel-tutor" class="panel active">
+      <div class="tutor-layout">
+        <aside class="sidebar">
+          <label class="field-label" for="tutor-subject">Subject</label>
+          <div class="combo">
+            <input list="subject-list" id="tutor-subject" class="combo-input" placeholder="Search or type a subject…" autocomplete="off">
+            <datalist id="subject-list"></datalist>
+          </div>
+          <p class="hint">Optional — helps the tutor tailor explanations. Type anything; suggestions come from bundled presets.</p>
+
+          <div class="sidebar-block">
+            <h3>Tips</h3>
+            <ul class="tip-list">
+              <li>Ask "why", not just "what" — the tutor explains reasoning.</li>
+              <li>Follow-up questions keep context from earlier in the chat.</li>
+              <li>Paste in a problem statement directly — no formatting needed.</li>
+            </ul>
+          </div>
+        </aside>
+
+        <div class="chat-column">
+          <div id="chat-log" class="chat-log">
+            <div class="chat-msg assistant">
+              <div class="msg-bubble">Hi — ask me anything academic: math, science, history, writing, code, whatever you're stuck on.</div>
+            </div>
+          </div>
+          <form id="chat-form" class="chat-input-row">
+            <textarea id="chat-input" placeholder="Ask a question…" rows="2" required></textarea>
+            <button type="submit" class="btn-primary">Send</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- GRADING MODE -->
+    <section id="panel-grade" class="panel">
+      <div class="grade-layout">
+        <div class="upload-column">
+          <label class="field-label" for="grade-subject">Subject <span class="optional">(optional context)</span></label>
+          <div class="combo">
+            <input list="subject-list-2" id="grade-subject" class="combo-input" placeholder="Search or type a subject…" autocomplete="off">
+            <datalist id="subject-list-2"></datalist>
+          </div>
+
+          <label class="field-label">Upload script</label>
+          <div id="dropzone" class="dropzone">
+            <input type="file" id="file-input" accept="image/png,image/jpeg,image/gif,image/webp,application/pdf" hidden>
+            <div class="dropzone-inner">
+              <span class="dropzone-icon">⇪</span>
+              <p><strong>Drop a file</strong> or click to browse</p>
+              <p class="hint">PNG, JPG, GIF, WEBP, or PDF — a full answer script with one or more questions</p>
+            </div>
+            <div id="file-preview" class="file-preview hidden">
+              <span id="file-name"></span>
+              <button type="button" id="file-clear" class="btn-ghost">Remove</button>
+            </div>
+          </div>
+
+          <button id="grade-btn" class="btn-primary btn-block" disabled>Grade Script</button>
+          <div id="grade-status" class="status-line"></div>
+        </div>
+
+        <div class="results-column">
+          <div id="grade-empty" class="empty-state">
+            <p>Results will appear here once you upload and grade a script.</p>
+          </div>
+          <div id="grade-results" class="grade-results hidden"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
