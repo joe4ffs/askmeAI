@@ -267,26 +267,38 @@
     gradeResults.classList.remove("hidden");
     gradeResults.innerHTML = "";
 
+    const flaggedCount = result.questions.filter((q) => q.needs_human_review).length;
+
     const summary = document.createElement("div");
     summary.className = "summary-card";
     summary.innerHTML = `
       <div class="summary-score">${escapeHtml(result.score_estimate)}</div>
       <div class="summary-text">${escapeHtml(result.overall_summary)}</div>
+      ${
+        flaggedCount > 0
+          ? `<div class="summary-flag">⚠ ${flaggedCount} of ${result.questions.length} question${flaggedCount === 1 ? "" : "s"} flagged for human review</div>`
+          : `<div class="summary-flag ok">✓ All questions graded with high confidence</div>`
+      }
     `;
     gradeResults.appendChild(summary);
 
     result.questions.forEach((q, i) => {
       const card = document.createElement("div");
-      card.className = `q-card ${q.is_correct ? "correct" : "incorrect"}`;
+      card.className = `q-card ${q.is_correct ? "correct" : "incorrect"} ${q.needs_human_review ? "flagged" : ""}`;
       card.innerHTML = `
         <div class="q-header">
           <div class="q-text">Q${i + 1}. ${escapeHtml(q.question_text)}</div>
-          <span class="q-badge">${q.is_correct ? "Correct" : "Incorrect"}</span>
+          <div class="q-badges">
+            ${q.needs_human_review ? `<span class="q-badge review">Needs Review</span>` : ""}
+            <span class="q-badge confidence-${escapeHtml(q.confidence)}">${escapeHtml(q.confidence)} confidence</span>
+            <span class="q-badge">${q.is_correct ? "Correct" : "Incorrect"}</span>
+          </div>
         </div>
         <div class="q-concept">${escapeHtml(q.concept)}</div>
         <div class="q-answer"><strong>Student wrote:</strong> ${escapeHtml(q.student_answer_as_written)}</div>
         <div class="q-explain">${escapeHtml(q.explanation)}</div>
         ${q.correction ? `<div class="q-correction"><strong>Correction:</strong> ${escapeHtml(q.correction)}</div>` : ""}
+        ${q.needs_human_review ? `<div class="q-review-reason"><strong>Why flagged:</strong> ${escapeHtml(q.review_reason)}</div>` : ""}
       `;
       gradeResults.appendChild(card);
     });

@@ -47,6 +47,9 @@ class FakeProvider:
                         "explanation": "FakeProvider does not grade real scripts; set a real provider.",
                         "correction": None,
                         "concept": "placeholder",
+                        "confidence": "low",
+                        "needs_human_review": True,
+                        "review_reason": "FakeProvider does not perform real grading; set a real provider.",
                     }
                 ],
                 "overall_summary": "Graded by FakeProvider (placeholder, not a real evaluation).",

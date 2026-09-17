@@ -16,6 +16,7 @@ import json
 import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -66,6 +67,8 @@ class Handler(BaseHTTPRequestHandler):
             self._handle_list_sessions()
         elif self.path.startswith("/api/sessions/"):
             self._handle_get_session(self.path.removeprefix("/api/sessions/"))
+        elif self.path.startswith("/api/reliability"):
+            self._handle_reliability()
         else:
             self.send_response(404)
             self.end_headers()
@@ -119,6 +122,19 @@ class Handler(BaseHTTPRequestHandler):
     def _handle_delete_session(self, session_id: str) -> None:
         _storage.delete_session(session_id)
         self._send_json({"ok": True})
+
+    def _handle_reliability(self) -> None:
+        query = parse_qs(urlsplit(self.path).query)
+        subject = (query.get("subject", [None])[0] or "").strip() or None
+        stats = _storage.reliability_stats(subject)
+        self._send_json(
+            {
+                "subject": stats.subject,
+                "total_graded": stats.total_graded,
+                "flagged_for_review": stats.flagged_for_review,
+                "abstention_rate": stats.abstention_rate,
+            }
+        )
 
     def _handle_chat(self) -> None:
         try:

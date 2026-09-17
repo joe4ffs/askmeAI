@@ -4,9 +4,12 @@ Single-user local tool — no auth/multi-tenancy. One DB file (default grader/da
   - sessions: chat sessions (id, title, created_at, last_active_at)
   - messages: each session's turn history, in order
   - weak_areas: concepts a student got wrong on a graded script, with a running miss count
+  - grading_events: one row per graded question (confidence, needs_human_review) — the raw log
+    behind the grader's self-reported abstention rate
 
-This is what lets tutor chat survive a server restart, and lets the tutor reference past
-mistakes from script grading instead of starting from zero every conversation.
+This is what lets tutor chat survive a server restart, lets the tutor reference past mistakes
+from script grading instead of starting from zero every conversation, and lets the grader's
+own reliability be measured rather than asserted.
 """
 
 import sqlite3
@@ -47,6 +50,17 @@ CREATE TABLE IF NOT EXISTS weak_areas (
     last_seen_at TEXT NOT NULL,
     UNIQUE(subject, concept)
 );
+
+CREATE TABLE IF NOT EXISTS grading_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject TEXT NOT NULL,
+    concept TEXT NOT NULL,
+    is_correct INTEGER NOT NULL,
+    confidence TEXT NOT NULL,
+    needs_human_review INTEGER NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_grading_events_subject ON grading_events(subject);
 """
 
 
@@ -64,6 +78,17 @@ class WeakArea:
     concept: str
     miss_count: int
     correct_count: int
+
+
+@dataclass
+class ReliabilityStats:
+    subject: str
+    total_graded: int
+    flagged_for_review: int
+
+    @property
+    def abstention_rate(self) -> float | None:
+        return self.flagged_for_review / self.total_graded if self.total_graded else None
 
 
 def _now() -> str:
@@ -192,3 +217,29 @@ class Storage:
             return None
         correct, miss = correct or 0, miss or 0
         return correct / (correct + miss) if (correct + miss) else None
+
+    # ---- Grading reliability tracking ----
+
+    def record_grading_event(
+        self, subject: str, concept: str, is_correct: bool, confidence: str, needs_human_review: bool
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT INTO grading_events (subject, concept, is_correct, confidence, "
+                "needs_human_review, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                (subject, concept, int(is_correct), confidence, int(needs_human_review), _now()),
+            )
+
+    def reliability_stats(self, subject: str | None = None) -> ReliabilityStats:
+        """How often the grader has flagged its own output for human review — a real, queryable
+        abstention rate, not just a per-question badge."""
+        query = "SELECT COUNT(*), SUM(needs_human_review) FROM grading_events"
+        params: list = []
+        if subject:
+            query += " WHERE subject = ?"
+            params.append(subject)
+        with self._connect() as conn:
+            total, flagged = conn.execute(query, params).fetchone()
+        return ReliabilityStats(
+            subject=subject or "all", total_graded=total or 0, flagged_for_review=flagged or 0
+        )

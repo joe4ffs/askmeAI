@@ -106,6 +106,12 @@ class GradingRequest(BaseModel):
         return self
 
 
+class GradeConfidence(str, Enum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
 class ScriptQuestionResult(BaseModel):
     question_text: str = Field(description="The question as found in the script, verbatim or paraphrased")
     student_answer_as_written: str = Field(description="The student's answer to this question, transcribed")
@@ -118,12 +124,36 @@ class ScriptQuestionResult(BaseModel):
         description="Short tag (2-5 words) for the underlying concept this question tests, e.g. "
         "'quadratic factoring' or 'thread synchronization' — used to track recurring weak areas"
     )
+    confidence: GradeConfidence = Field(
+        description="How confident the grader is in this specific judgment. LOW/MEDIUM should be "
+        "honest, not rare — use them whenever handwriting is unclear, the method is unusual but "
+        "possibly valid, or the correctness call is a genuine judgment rather than a clear fact."
+    )
+    needs_human_review: bool = Field(
+        description="True if a human should check this one before the grade is trusted — typically "
+        "whenever confidence is not HIGH"
+    )
+    review_reason: str | None = Field(
+        default=None,
+        description="Required if needs_human_review is True; explains specifically what's uncertain "
+        "(e.g. 'last two lines illegible', 'method is nonstandard, may still be valid')",
+    )
+
+    @model_validator(mode="after")
+    def _review_requires_reason(self) -> "ScriptQuestionResult":
+        if self.needs_human_review and not self.review_reason:
+            raise ValueError("review_reason is required when needs_human_review is True")
+        return self
 
 
 class ScriptGradingResult(BaseModel):
     questions: list[ScriptQuestionResult]
     overall_summary: str = Field(description="Short summary of overall performance across the script")
     score_estimate: str = Field(description="e.g. '7/10 questions correct' — a rough tally, not a rubric score")
+
+    @property
+    def flagged_count(self) -> int:
+        return sum(1 for q in self.questions if q.needs_human_review)
 
 
 class HumanRubricJudgment(BaseModel):

@@ -63,6 +63,13 @@ python scripts/web_ui.py --port 8080
   (`grader/script_grader.py`). Wrong answers are logged per subject+concept; once a concept has more
   misses than correct answers, it shows up as a "weak area" the tutor can reference in later chats
   for that subject, and the tutor also calibrates explanation depth from recent accuracy.
+  - **Confidence + abstention**: every question also gets a `confidence` (high/medium/low) and, when
+    the grader isn't sure — unclear handwriting, a nonstandard-but-possibly-valid method, a genuine
+    judgment call — `needs_human_review=true` with a `review_reason` explaining what's uncertain,
+    instead of silently picking an interpretation. Each graded question is logged to
+    `grading_events` in `data/app.db`, so the grader's actual abstention rate (how often it flags
+    itself) is a real, queryable number via `Storage.reliability_stats()` /
+    `GET /api/reliability?subject=...`, not just a per-question UI badge.
 
 Uses whichever provider `get_provider()` resolves to (see [Model providers](#model-providers)) — set
 `GEMINI_API_KEY` etc. before starting the server to use a real model instead of the `fake` provider,

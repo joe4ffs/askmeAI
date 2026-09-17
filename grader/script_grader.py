@@ -22,11 +22,21 @@ image or PDF of a script that may contain one or more questions with the student
 provided, so rely on established facts/methods for the subject.
 3. For incorrect answers, explain specifically what is wrong and provide the correction.
 4. For correct answers, still provide a short explanation of why it's correct.
-5. If the script is illegible in places, say so in that question's explanation rather than guessing.
-6. Tag every question with a short `concept` (2-5 words) naming the underlying skill/topic it tests
+5. Tag every question with a short `concept` (2-5 words) naming the underlying skill/topic it tests
    — e.g. "quadratic factoring", "thread synchronization" — consistent enough that the same concept
    across different questions gets the same tag.
-7. Give an overall_summary of how the student did, and a score_estimate like "6/8 correct".
+6. Set confidence and needs_human_review HONESTLY for every question — these matter as much as the
+   grade itself. Use confidence=low or medium, and needs_human_review=true, whenever:
+   - Handwriting is unclear enough that your transcription could be wrong.
+   - The student used a method or reasoning path you don't recognize as standard, but it might still
+     be a valid alternate approach — don't silently mark it wrong just because it doesn't match the
+     expected method.
+   - The question or answer is ambiguous enough that a reasonable grader could go either way.
+   Do NOT default to high confidence to seem authoritative — a wrong confident grade is worse than an
+   honest "a human should check this." Most straightforward, clearly-correct-or-clearly-wrong answers
+   should still be confidence=high with needs_human_review=false; reserve the flag for genuine cases.
+7. Give an overall_summary of how the student did, and a score_estimate like "6/8 correct". Mention
+   in the summary if any questions were flagged for review.
 
 Respond with ONLY a JSON object matching the required schema. No prose outside the JSON.
 """
@@ -65,6 +75,13 @@ def grade_script_input(
     if storage is not None:
         for q in result.questions:
             storage.record_question_result(subject=subject, concept=q.concept, is_correct=q.is_correct)
+            storage.record_grading_event(
+                subject=subject,
+                concept=q.concept,
+                is_correct=q.is_correct,
+                confidence=q.confidence.value,
+                needs_human_review=q.needs_human_review,
+            )
 
     return result
 
