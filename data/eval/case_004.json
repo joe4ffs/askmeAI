@@ -1,0 +1,19 @@
+{
+  "case_id": "case_004",
+  "request": {
+    "subject": "english",
+    "question": "What is the difference between a metaphor and a simile? Give an example of each.",
+    "reference_answer": "A simile compares two things using 'like' or 'as' (e.g. 'her smile was like sunshine'). A metaphor states that one thing is another, without 'like' or 'as' (e.g. 'her smile was sunshine'). Both are figures of speech used to create vivid comparisons, but a metaphor asserts identity while a simile only draws a comparison.",
+    "rubric": [
+      { "criterion": "Correctly defines simile as using 'like' or 'as'", "points": 2 },
+      { "criterion": "Correctly defines metaphor as a direct comparison without 'like'/'as'", "points": 2 },
+      { "criterion": "Provides a valid example of each", "points": 2 }
+    ],
+    "student_answer": "A simile uses like or as to compare things, for example 'brave as a lion'. A metaphor also compares two things but doesn't use like or as, for example 'he is a lion in battle'."
+  },
+  "human_judgments": [
+    { "criterion": "Correctly defines simile as using 'like' or 'as'", "status": "met", "points_awarded": 2, "points_possible": 2 },
+    { "criterion": "Correctly defines metaphor as a direct comparison without 'like'/'as'", "status": "met", "points_awarded": 2, "points_possible": 2 },
+    { "criterion": "Provides a valid example of each", "status": "met", "points_awarded": 2, "points_possible": 2 }
+  ]
+}

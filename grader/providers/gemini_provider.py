@@ -6,7 +6,7 @@ from google.genai import types
 
 from grader.providers.base import ImageInput
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-3.6-flash"
 
 
 class GeminiProvider:

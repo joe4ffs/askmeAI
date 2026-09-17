@@ -1,0 +1,17 @@
+{
+  "case_id": "case_005",
+  "request": {
+    "subject": "english",
+    "question": "Identify the main theme of a story about a fisherman who releases the biggest fish he's ever caught after a long struggle, and explain your reasoning.",
+    "reference_answer": "The main theme is the value of respect for nature over personal achievement or material gain — the fisherman chooses to let the fish go rather than claim his prize, suggesting that the struggle itself, and a connection to nature, mattered more than the trophy. Reasoning should reference the release as a deliberate choice reflecting changed values.",
+    "rubric": [
+      { "criterion": "Identifies a theme related to respect for nature / valuing experience over material gain", "points": 3 },
+      { "criterion": "Supports the theme with reasoning tied to the fisherman releasing the fish", "points": 2 }
+    ],
+    "student_answer": "The story is about fishing and how hard it is to catch a big fish. The fisherman worked really hard to catch it."
+  },
+  "human_judgments": [
+    { "criterion": "Identifies a theme related to respect for nature / valuing experience over material gain", "status": "missed", "points_awarded": 0, "points_possible": 3 },
+    { "criterion": "Supports the theme with reasoning tied to the fisherman releasing the fish", "status": "missed", "points_awarded": 0, "points_possible": 2 }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "case_id": "case_002",
+  "request": {
+    "subject": "math",
+    "question": "Solve for x: 2x + 6 = 14. Show your work.",
+    "reference_answer": "2x + 6 = 14. Subtract 6 from both sides: 2x = 8. Divide both sides by 2: x = 4.",
+    "rubric": [
+      { "criterion": "Correctly isolates the variable term (subtracts 6 from both sides)", "points": 1 },
+      { "criterion": "Correctly divides to solve for x", "points": 1 },
+      { "criterion": "Final answer x = 4 is stated", "points": 2 }
+    ],
+    "student_answer": "2x + 6 = 14\n2x = 8\nx = 4"
+  },
+  "human_judgments": [
+    { "criterion": "Correctly isolates the variable term (subtracts 6 from both sides)", "status": "met", "points_awarded": 1, "points_possible": 1 },
+    { "criterion": "Correctly divides to solve for x", "status": "met", "points_awarded": 1, "points_possible": 1 },
+    { "criterion": "Final answer x = 4 is stated", "status": "met", "points_awarded": 2, "points_possible": 2 }
+  ]
+}

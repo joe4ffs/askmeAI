@@ -1,0 +1,19 @@
+{
+  "case_id": "case_006",
+  "request": {
+    "subject": "operating_systems",
+    "question": "What is a deadlock, and what are two conditions necessary for one to occur?",
+    "reference_answer": "A deadlock is a situation where two or more processes are each waiting for a resource held by another, so none of them can proceed. Necessary conditions include mutual exclusion (resources can't be shared), hold and wait (a process holds a resource while waiting for another), no preemption (resources can't be forcibly taken away), and circular wait (a cycle of processes each waiting on the next).",
+    "rubric": [
+      { "criterion": "Correctly defines deadlock as processes waiting on each other's resources with no progress", "points": 2 },
+      { "criterion": "States mutual exclusion as a necessary condition", "points": 1 },
+      { "criterion": "States hold-and-wait, no-preemption, or circular-wait as a second necessary condition", "points": 1 }
+    ],
+    "student_answer": "A deadlock is when two programs are stuck waiting forever because each one needs something the other has. One reason this happens is because resources can't be shared between processes at the same time."
+  },
+  "human_judgments": [
+    { "criterion": "Correctly defines deadlock as processes waiting on each other's resources with no progress", "status": "met", "points_awarded": 2, "points_possible": 2 },
+    { "criterion": "States mutual exclusion as a necessary condition", "status": "met", "points_awarded": 1, "points_possible": 1 },
+    { "criterion": "States hold-and-wait, no-preemption, or circular-wait as a second necessary condition", "status": "missed", "points_awarded": 0, "points_possible": 1 }
+  ]
+}

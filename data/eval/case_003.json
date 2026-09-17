@@ -1,0 +1,17 @@
+{
+  "case_id": "case_003",
+  "request": {
+    "subject": "math",
+    "question": "A rectangle has length 8 cm and width 5 cm. Find its area and perimeter.",
+    "reference_answer": "Area = length x width = 8 x 5 = 40 cm^2. Perimeter = 2 x (length + width) = 2 x 13 = 26 cm.",
+    "rubric": [
+      { "criterion": "Correct area calculation (40 cm^2) with correct formula shown", "points": 2 },
+      { "criterion": "Correct perimeter calculation (26 cm) with correct formula shown", "points": 2 }
+    ],
+    "student_answer": "Area = 8 x 5 = 40 cm^2. Perimeter = 8 + 5 = 13 cm."
+  },
+  "human_judgments": [
+    { "criterion": "Correct area calculation (40 cm^2) with correct formula shown", "status": "met", "points_awarded": 2, "points_possible": 2 },
+    { "criterion": "Correct perimeter calculation (26 cm) with correct formula shown", "status": "partially_met", "points_awarded": 0.5, "points_possible": 2 }
+  ]
+}

@@ -17,6 +17,7 @@ Usage:
 import argparse
 import json
 import sys
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -34,10 +35,17 @@ def load_eval_cases(eval_dir: Path) -> list[EvalCase]:
     ]
 
 
-def run_eval(eval_dir: Path) -> pd.DataFrame:
+def run_eval(eval_dir: Path, delay_seconds: float = 0) -> pd.DataFrame:
     rows = []
-    for case in load_eval_cases(eval_dir):
-        result = grade(case.request)
+    cases = load_eval_cases(eval_dir)
+    for i, case in enumerate(cases):
+        if i > 0 and delay_seconds:
+            time.sleep(delay_seconds)
+        try:
+            result = grade(case.request)
+        except Exception as exc:
+            print(f"skipping {case.case_id}: {exc}", file=sys.stderr)
+            continue
         rows.append(
             {
                 "case_id": case.case_id,
@@ -74,9 +82,15 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("eval_dir", help="Directory of eval case JSON files")
     parser.add_argument("--out", help="Optional path to write per-case results as CSV")
+    parser.add_argument(
+        "--delay",
+        type=float,
+        default=0,
+        help="Seconds to wait between cases (use e.g. 15 to stay under a free-tier rate limit)",
+    )
     args = parser.parse_args()
 
-    df = run_eval(Path(args.eval_dir))
+    df = run_eval(Path(args.eval_dir), delay_seconds=args.delay)
     print(summarize(df))
 
     if args.out:

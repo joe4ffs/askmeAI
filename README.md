@@ -117,6 +117,10 @@ Run the grading engine against a directory of human-graded cases and report agre
 python scripts/run_eval.py data/eval --out results.csv
 ```
 
+The free Gemini tier is rate-limited (5 requests/minute, 20 requests/day per model as of writing).
+Use `--delay 15` to pace requests within a run; if you hit a 429 quota error, the eval script skips
+that case and keeps going — rerun later to fill in the gaps.
+
 Eval case file format — see `data/eval/case_001.json`:
 
 ```json
