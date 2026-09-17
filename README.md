@@ -140,7 +140,9 @@ Run the grading engine against a directory of human-graded cases and report agre
 python scripts/run_eval.py data/eval --out results.csv
 ```
 
-The free Gemini tier is rate-limited (5 requests/minute, 20 requests/day per model as of writing).
+The free Gemini tier is rate-limited per model (5 requests/minute, 20 requests/day for
+`gemini-3.6-flash` as of writing — the default provider model is `gemini-3.1-flash-lite`, which has
+a separate, higher free-tier quota).
 Use `--delay 15` to pace requests within a run; if you hit a 429 quota error, the eval script skips
 that case and keeps going — rerun later to fill in the gaps.
 

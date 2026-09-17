@@ -6,7 +6,7 @@ from google.genai import types
 
 from grader.providers.base import ChatMessage, ImageInput
 
-MODEL = "gemini-3.6-flash"
+MODEL = "gemini-3.1-flash-lite"
 
 
 class GeminiProvider:
