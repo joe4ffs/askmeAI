@@ -53,11 +53,16 @@ python scripts/web_ui.py            # http://127.0.0.1:8000
 python scripts/web_ui.py --port 8080
 ```
 
-- **Tutor Chat** — open-ended academic Q&A with conversation memory (`grader/tutor.py`). Ask
-  anything; an optional subject field adds context to the prompt.
+- **Tutor Chat** — open-ended academic Q&A (`grader/tutor.py`). Ask anything; an optional subject
+  field adds context and pulls in that subject's tracked weak areas. Each answer ends with a short
+  follow-up question to keep the conversation going. Chats persist to `data/app.db` (SQLite) — the
+  sidebar lists past sessions, click one to resume it, even after restarting the server.
 - **Script Grading** — upload an image or PDF of a full answer script. The model (no rubric
-  required) segments it into individual questions, judges each from its own subject knowledge,
-  and marks which ones are wrong with a correction (`grader/script_grader.py`).
+  required) segments it into individual questions, judges each from its own subject knowledge, tags
+  the underlying concept, and marks which ones are wrong with a correction
+  (`grader/script_grader.py`). Wrong answers are logged per subject+concept; once a concept has more
+  misses than correct answers, it shows up as a "weak area" the tutor can reference in later chats
+  for that subject, and the tutor also calibrates explanation depth from recent accuracy.
 
 Uses whichever provider `get_provider()` resolves to (see [Model providers](#model-providers)) — set
 `GEMINI_API_KEY` etc. before starting the server to use a real model instead of the `fake` provider,

@@ -114,6 +114,10 @@ class ScriptQuestionResult(BaseModel):
     correction: str | None = Field(
         default=None, description="The correct answer/fix, if is_correct is False; otherwise None"
     )
+    concept: str = Field(
+        description="Short tag (2-5 words) for the underlying concept this question tests, e.g. "
+        "'quadratic factoring' or 'thread synchronization' — used to track recurring weak areas"
+    )
 
 
 class ScriptGradingResult(BaseModel):

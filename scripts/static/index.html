@@ -24,29 +24,32 @@
     <section id="panel-tutor" class="panel active">
       <div class="tutor-layout">
         <aside class="sidebar">
+          <button id="new-chat-btn" class="btn-primary btn-block" style="margin-top:0;">+ New Chat</button>
+
           <label class="field-label" for="tutor-subject">Subject</label>
           <div class="combo">
             <input list="subject-list" id="tutor-subject" class="combo-input" placeholder="Search or type a subject…" autocomplete="off">
             <datalist id="subject-list"></datalist>
           </div>
-          <p class="hint">Optional — helps the tutor tailor explanations. Type anything; suggestions come from bundled presets.</p>
+          <p class="hint">Optional — helps the tutor tailor explanations and recall past weak areas.</p>
+
+          <div class="sidebar-block">
+            <h3>Chat History</h3>
+            <ul id="session-list" class="session-list"></ul>
+          </div>
 
           <div class="sidebar-block">
             <h3>Tips</h3>
             <ul class="tip-list">
               <li>Ask "why", not just "what" — the tutor explains reasoning.</li>
-              <li>Follow-up questions keep context from earlier in the chat.</li>
+              <li>Conversations are saved automatically and persist across restarts.</li>
               <li>Paste in a problem statement directly — no formatting needed.</li>
             </ul>
           </div>
         </aside>
 
         <div class="chat-column">
-          <div id="chat-log" class="chat-log">
-            <div class="chat-msg assistant">
-              <div class="msg-bubble">Hi — ask me anything academic: math, science, history, writing, code, whatever you're stuck on.</div>
-            </div>
-          </div>
+          <div id="chat-log" class="chat-log"></div>
           <form id="chat-form" class="chat-input-row">
             <textarea id="chat-input" placeholder="Ask a question…" rows="2" required></textarea>
             <button type="submit" class="btn-primary">Send</button>

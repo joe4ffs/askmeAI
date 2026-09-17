@@ -12,6 +12,7 @@ from pathlib import Path
 
 from grader.providers import ImageInput, ModelProvider, get_provider
 from grader.schema import ScriptGradingResult
+from grader.storage import Storage
 
 SYSTEM_PROMPT = """You are a strict, fair teacher marking a student's answer script. You are given an \
 image or PDF of a script that may contain one or more questions with the student's written answers. You must:
@@ -22,7 +23,10 @@ provided, so rely on established facts/methods for the subject.
 3. For incorrect answers, explain specifically what is wrong and provide the correction.
 4. For correct answers, still provide a short explanation of why it's correct.
 5. If the script is illegible in places, say so in that question's explanation rather than guessing.
-6. Give an overall_summary of how the student did, and a score_estimate like "6/8 correct".
+6. Tag every question with a short `concept` (2-5 words) naming the underlying skill/topic it tests
+   — e.g. "quadratic factoring", "thread synchronization" — consistent enough that the same concept
+   across different questions gets the same tag.
+7. Give an overall_summary of how the student did, and a score_estimate like "6/8 correct".
 
 Respond with ONLY a JSON object matching the required schema. No prose outside the JSON.
 """
@@ -41,8 +45,14 @@ def grade_script(file_path: str, provider: ModelProvider | None = None) -> Scrip
 
 
 def grade_script_input(
-    file_input: ImageInput, provider: ModelProvider | None = None
+    file_input: ImageInput,
+    provider: ModelProvider | None = None,
+    subject: str = "general",
+    storage: Storage | None = None,
 ) -> ScriptGradingResult:
+    """Grade a script. If `storage` is given, each question's concept/correctness is logged for
+    weak-area tracking (subject is a free-text label, e.g. "math" — used to group concepts).
+    """
     provider = provider or get_provider()
     prompt = (
         "Read this script, identify each question and answer (student_answer_as_written), and grade "
@@ -50,7 +60,13 @@ def grade_script_input(
         f"{json.dumps(ScriptGradingResult.model_json_schema(), indent=2)}"
     )
     text = provider.complete(system=SYSTEM_PROMPT, prompt=prompt, image=file_input)
-    return ScriptGradingResult.model_validate_json(_extract_json(text))
+    result = ScriptGradingResult.model_validate_json(_extract_json(text))
+
+    if storage is not None:
+        for q in result.questions:
+            storage.record_question_result(subject=subject, concept=q.concept, is_correct=q.is_correct)
+
+    return result
 
 
 def _extract_json(text: str) -> str:

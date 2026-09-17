@@ -34,7 +34,18 @@
   const chatLog = document.getElementById("chat-log");
   const chatForm = document.getElementById("chat-form");
   const chatInput = document.getElementById("chat-input");
-  let sessionId = null;
+  const sessionListEl = document.getElementById("session-list");
+  const newChatBtn = document.getElementById("new-chat-btn");
+  let sessionId = localStorage.getItem("ai-grader-session-id") || null;
+
+  const WELCOME_HTML =
+    "Hi — ask me anything academic: math, science, history, writing, code, whatever you're stuck on.";
+
+  function setSessionId(id) {
+    sessionId = id;
+    if (id) localStorage.setItem("ai-grader-session-id", id);
+    else localStorage.removeItem("ai-grader-session-id");
+  }
 
   function appendMessage(role, text) {
     const wrap = document.createElement("div");
@@ -48,13 +59,87 @@
     return wrap;
   }
 
+  function clearChatLog() {
+    chatLog.innerHTML = "";
+  }
+
+  async function loadSessionList() {
+    try {
+      const res = await fetch("/api/sessions");
+      const { sessions } = await res.json();
+      sessionListEl.innerHTML = "";
+      if (!sessions.length) {
+        const li = document.createElement("li");
+        li.className = "session-empty";
+        li.textContent = "No saved chats yet.";
+        sessionListEl.appendChild(li);
+        return;
+      }
+      sessions.forEach((s) => {
+        const li = document.createElement("li");
+        li.className = "session-item" + (s.id === sessionId ? " active" : "");
+        const title = document.createElement("span");
+        title.className = "session-title";
+        title.textContent = s.title;
+        const del = document.createElement("button");
+        del.className = "session-delete";
+        del.textContent = "×";
+        del.title = "Delete this chat";
+        del.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          await fetch(`/api/sessions/${s.id}`, { method: "DELETE" });
+          if (s.id === sessionId) startNewChat();
+          loadSessionList();
+        });
+        li.appendChild(title);
+        li.appendChild(del);
+        li.addEventListener("click", () => resumeSession(s.id));
+        sessionListEl.appendChild(li);
+      });
+    } catch (err) {
+      sessionListEl.innerHTML = "";
+    }
+  }
+
+  async function resumeSession(id) {
+    setSessionId(id);
+    clearChatLog();
+    try {
+      const res = await fetch(`/api/sessions/${id}`);
+      const data = await res.json();
+      if (data.messages && data.messages.length) {
+        data.messages.forEach((m) => appendMessage(m.role, m.content));
+      } else {
+        appendMessage("assistant", WELCOME_HTML);
+      }
+    } catch (err) {
+      appendMessage("error", `Could not load chat: ${err.message}`);
+    }
+    loadSessionList();
+  }
+
+  function startNewChat() {
+    setSessionId(null);
+    clearChatLog();
+    appendMessage("assistant", WELCOME_HTML);
+    loadSessionList();
+  }
+
+  newChatBtn.addEventListener("click", startNewChat);
+
+  // Restore last session on page load, or show the welcome message fresh.
+  if (sessionId) {
+    resumeSession(sessionId);
+  } else {
+    loadSessionList();
+  }
+
   chatForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const message = chatInput.value.trim();
     if (!message) return;
 
     const subject = document.getElementById("tutor-subject").value.trim();
-    const fullMessage = subject ? `[Subject: ${subject}] ${message}` : message;
 
     appendMessage("user", message);
     chatInput.value = "";
@@ -66,7 +151,7 @@
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: sessionId, message: fullMessage }),
+        body: JSON.stringify({ session_id: sessionId, message, subject }),
       });
       const data = await res.json();
       pending.remove();
@@ -74,8 +159,10 @@
         appendMessage("error", data.error || "Something went wrong.");
         return;
       }
-      sessionId = data.session_id;
+      const isNewSession = sessionId !== data.session_id;
+      setSessionId(data.session_id);
       appendMessage("assistant", data.reply);
+      if (isNewSession) loadSessionList();
     } catch (err) {
       pending.remove();
       appendMessage("error", `Connection error: ${err.message}`);
@@ -161,6 +248,7 @@
           <div class="q-text">Q${i + 1}. ${escapeHtml(q.question_text)}</div>
           <span class="q-badge">${q.is_correct ? "Correct" : "Incorrect"}</span>
         </div>
+        <div class="q-concept">${escapeHtml(q.concept)}</div>
         <div class="q-answer"><strong>Student wrote:</strong> ${escapeHtml(q.student_answer_as_written)}</div>
         <div class="q-explain">${escapeHtml(q.explanation)}</div>
         ${q.correction ? `<div class="q-correction"><strong>Correction:</strong> ${escapeHtml(q.correction)}</div>` : ""}
@@ -180,8 +268,10 @@
     gradeBtn.disabled = true;
     setStatus("Grading — this can take a bit for a real model…");
 
+    const subject = document.getElementById("grade-subject").value.trim();
     const formData = new FormData();
     formData.append("file", selectedFile);
+    if (subject) formData.append("subject", subject);
 
     try {
       const res = await fetch("/api/grade-script", { method: "POST", body: formData });
