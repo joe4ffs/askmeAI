@@ -16,6 +16,7 @@
     <nav class="mode-switch" role="tablist">
       <button class="mode-btn active" data-mode="tutor" role="tab" aria-selected="true">Tutor Chat</button>
       <button class="mode-btn" data-mode="grade" role="tab" aria-selected="false">Script Grading</button>
+      <button class="mode-btn" data-mode="study" role="tab" aria-selected="false">Study</button>
     </nav>
   </header>
 
@@ -108,6 +109,44 @@
             <div id="annotation-detail" class="annotation-detail hidden"></div>
           </div>
           <div id="grade-results" class="grade-results hidden"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STUDY MODE -->
+    <section id="panel-study" class="panel">
+      <div class="study-layout">
+        <aside class="sidebar">
+          <label class="field-label" for="study-subject">Subject</label>
+          <div class="combo">
+            <input list="subject-list-3" id="study-subject" class="combo-input" placeholder="All subjects" autocomplete="off">
+            <datalist id="subject-list-3"></datalist>
+          </div>
+          <p class="hint">Filter flashcards and mastery to one subject, or leave blank for everything.</p>
+
+          <div class="sidebar-block">
+            <h3>Mastery</h3>
+            <div id="mastery-list" class="mastery-list"></div>
+          </div>
+        </aside>
+
+        <div class="study-column">
+          <div id="study-empty" class="empty-state">
+            <p>No flashcards due right now. Grade a script with mistakes to generate some, or come back later.</p>
+          </div>
+          <div id="flashcard-area" class="flashcard-area hidden">
+            <div class="flashcard-progress"><span id="flashcard-progress-text"></span></div>
+            <div id="flashcard" class="flashcard">
+              <div class="flashcard-concept" id="flashcard-concept"></div>
+              <div class="flashcard-front" id="flashcard-front"></div>
+              <div class="flashcard-back hidden" id="flashcard-back"></div>
+              <button id="flashcard-flip-btn" class="btn-ghost flashcard-flip-btn">Show Answer</button>
+            </div>
+            <div class="flashcard-review-row hidden" id="flashcard-review-row">
+              <button class="btn-review wrong" id="flashcard-wrong-btn">✗ Got it wrong</button>
+              <button class="btn-review right" id="flashcard-right-btn">✓ Got it right</button>
+            </div>
+          </div>
         </div>
       </div>
     </section>

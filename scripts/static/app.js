@@ -3,7 +3,11 @@
 
   // ---- Mode switching ----
   const modeButtons = document.querySelectorAll(".mode-btn");
-  const panels = { tutor: document.getElementById("panel-tutor"), grade: document.getElementById("panel-grade") };
+  const panels = {
+    tutor: document.getElementById("panel-tutor"),
+    grade: document.getElementById("panel-grade"),
+    study: document.getElementById("panel-study"),
+  };
 
   modeButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -12,6 +16,7 @@
       btn.setAttribute("aria-selected", "true");
       Object.values(panels).forEach((p) => p.classList.remove("active"));
       panels[btn.dataset.mode].classList.add("active");
+      if (btn.dataset.mode === "study") loadStudyMode();
     });
   });
 
@@ -19,7 +24,11 @@
   fetch("/api/subjects")
     .then((r) => r.json())
     .then(({ subjects }) => {
-      const lists = [document.getElementById("subject-list"), document.getElementById("subject-list-2")];
+      const lists = [
+        document.getElementById("subject-list"),
+        document.getElementById("subject-list-2"),
+        document.getElementById("subject-list-3"),
+      ];
       lists.forEach((list) => {
         subjects.forEach((s) => {
           const opt = document.createElement("option");
@@ -413,4 +422,118 @@
       gradeBtn.disabled = false;
     }
   });
+
+  // ---- Study mode (flashcards + mastery) ----
+  const studySubject = document.getElementById("study-subject");
+  const masteryList = document.getElementById("mastery-list");
+  const studyEmpty = document.getElementById("study-empty");
+  const flashcardArea = document.getElementById("flashcard-area");
+  const flashcardProgressText = document.getElementById("flashcard-progress-text");
+  const flashcardConcept = document.getElementById("flashcard-concept");
+  const flashcardFront = document.getElementById("flashcard-front");
+  const flashcardBack = document.getElementById("flashcard-back");
+  const flashcardFlipBtn = document.getElementById("flashcard-flip-btn");
+  const flashcardReviewRow = document.getElementById("flashcard-review-row");
+  const flashcardWrongBtn = document.getElementById("flashcard-wrong-btn");
+  const flashcardRightBtn = document.getElementById("flashcard-right-btn");
+
+  let studyQueue = [];
+  let studyIndex = 0;
+  let studyTotal = 0;
+
+  async function loadStudyMode() {
+    const subject = studySubject.value.trim();
+    await Promise.all([loadMastery(subject), loadFlashcardQueue(subject)]);
+  }
+
+  studySubject.addEventListener("change", loadStudyMode);
+
+  async function loadMastery(subject) {
+    try {
+      const url = subject ? `/api/mastery?subject=${encodeURIComponent(subject)}` : "/api/mastery";
+      const res = await fetch(url);
+      const { concepts } = await res.json();
+      masteryList.innerHTML = "";
+      if (!concepts.length) {
+        masteryList.innerHTML = `<p class="hint">No graded concepts yet.</p>`;
+        return;
+      }
+      concepts.forEach((c) => {
+        const pct = Math.round(c.mastery_pct * 100);
+        const row = document.createElement("div");
+        row.className = "mastery-row";
+        row.innerHTML = `
+          <div class="mastery-row-top">
+            <span class="mastery-concept">${escapeHtml(c.concept)}</span>
+            <span class="mastery-pct">${pct}%</span>
+          </div>
+          <div class="mastery-bar"><div class="mastery-bar-fill" style="width:${pct}%"></div></div>
+          <div class="mastery-attempts">${c.correct_count}/${c.total_attempts} correct</div>
+        `;
+        masteryList.appendChild(row);
+      });
+    } catch (err) {
+      masteryList.innerHTML = `<p class="hint">Could not load mastery data.</p>`;
+    }
+  }
+
+  async function loadFlashcardQueue(subject) {
+    try {
+      const url = subject
+        ? `/api/flashcards?subject=${encodeURIComponent(subject)}`
+        : "/api/flashcards";
+      const res = await fetch(url);
+      const { flashcards } = await res.json();
+      studyQueue = flashcards;
+      studyIndex = 0;
+      studyTotal = flashcards.length;
+      showCurrentCard();
+    } catch (err) {
+      studyQueue = [];
+      showCurrentCard();
+    }
+  }
+
+  function showCurrentCard() {
+    if (studyIndex >= studyQueue.length) {
+      studyEmpty.classList.remove("hidden");
+      flashcardArea.classList.add("hidden");
+      return;
+    }
+    studyEmpty.classList.add("hidden");
+    flashcardArea.classList.remove("hidden");
+
+    const card = studyQueue[studyIndex];
+    flashcardProgressText.textContent = `Card ${studyIndex + 1} of ${studyTotal}`;
+    flashcardConcept.textContent = card.concept;
+    flashcardFront.textContent = card.front;
+    flashcardBack.textContent = card.back;
+    flashcardBack.classList.add("hidden");
+    flashcardFlipBtn.classList.remove("hidden");
+    flashcardReviewRow.classList.add("hidden");
+  }
+
+  flashcardFlipBtn.addEventListener("click", () => {
+    flashcardBack.classList.remove("hidden");
+    flashcardFlipBtn.classList.add("hidden");
+    flashcardReviewRow.classList.remove("hidden");
+  });
+
+  async function submitReview(gotItRight) {
+    const card = studyQueue[studyIndex];
+    if (!card) return;
+    try {
+      await fetch(`/api/flashcards/${card.id}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ got_it_right: gotItRight }),
+      });
+    } catch (err) {}
+    studyIndex += 1;
+    showCurrentCard();
+    if (studyIndex >= studyQueue.length) loadMastery(studySubject.value.trim());
+  }
+
+  flashcardWrongBtn.addEventListener("click", () => submitReview(false));
+  flashcardRightBtn.addEventListener("click", () => submitReview(true));
 })();

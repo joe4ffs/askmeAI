@@ -96,6 +96,13 @@ def grade_script_input(
                 confidence=q.confidence.value,
                 needs_human_review=q.needs_human_review,
             )
+            if not q.is_correct and q.correction:
+                storage.create_flashcard(
+                    subject=subject,
+                    concept=q.concept,
+                    front=q.question_text,
+                    back=f"{q.correction}\n\n{q.explanation}",
+                )
 
     return result
 

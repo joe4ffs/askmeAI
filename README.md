@@ -86,6 +86,18 @@ python scripts/web_ui.py --port 8080
     `grading_events` in `data/app.db`, so the grader's actual abstention rate (how often it flags
     itself) is a real, queryable number via `Storage.reliability_stats()` /
     `GET /api/reliability?subject=...`, not just a per-question UI badge.
+- **Study** — turns a graded script into an ongoing review loop instead of a one-off result:
+  - **Auto-generated flashcards**: every wrong answer from Script Grading becomes a flashcard
+    (front = the question, back = the correction + explanation) — built directly from that
+    question's existing grading output, no extra model call. Review them in Study mode: flip to see
+    the answer, mark right/wrong. A card needs 3 correct reviews in a row (not necessarily
+    consecutive sessions) to count as mastered and drop out of the due queue
+    (`Storage.due_flashcards()` / `record_flashcard_review()`, `MASTERY_STREAK_TARGET` in
+    `grader/storage.py`).
+  - **Mastery tracking**: a per-concept correct/miss breakdown and mastery percentage, computed from
+    the same `weak_areas` data the tutor already uses to calibrate — visible as bars in Study mode's
+    sidebar (`Storage.mastery_by_concept()` / `GET /api/mastery?subject=...`), not just injected into
+    a chat prompt.
 
 Uses whichever provider `get_provider()` resolves to (see [Model providers](#model-providers)) — set
 `GEMINI_API_KEY` etc. before starting the server to use a real model instead of the `fake` provider,

@@ -69,6 +69,10 @@ class Handler(BaseHTTPRequestHandler):
             self._handle_get_session(self.path.removeprefix("/api/sessions/"))
         elif self.path.startswith("/api/reliability"):
             self._handle_reliability()
+        elif self.path.startswith("/api/flashcards"):
+            self._handle_list_flashcards()
+        elif self.path.startswith("/api/mastery"):
+            self._handle_mastery()
         else:
             self.send_response(404)
             self.end_headers()
@@ -80,6 +84,9 @@ class Handler(BaseHTTPRequestHandler):
             self._handle_grade_script()
         elif self.path == "/api/sessions":
             self._handle_create_session()
+        elif self.path.startswith("/api/flashcards/") and self.path.endswith("/review"):
+            card_id = self.path.removeprefix("/api/flashcards/").removesuffix("/review")
+            self._handle_review_flashcard(card_id)
         else:
             self.send_response(404)
             self.end_headers()
@@ -87,6 +94,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_DELETE(self) -> None:
         if self.path.startswith("/api/sessions/"):
             self._handle_delete_session(self.path.removeprefix("/api/sessions/"))
+        elif self.path.startswith("/api/flashcards/"):
+            card_id = self.path.removeprefix("/api/flashcards/")
+            self._handle_delete_flashcard(card_id)
         else:
             self.send_response(404)
             self.end_headers()
@@ -133,6 +143,61 @@ class Handler(BaseHTTPRequestHandler):
                 "total_graded": stats.total_graded,
                 "flagged_for_review": stats.flagged_for_review,
                 "abstention_rate": stats.abstention_rate,
+            }
+        )
+
+    def _handle_list_flashcards(self) -> None:
+        query = parse_qs(urlsplit(self.path).query)
+        subject = (query.get("subject", [None])[0] or "").strip() or None
+        due_only = query.get("due_only", ["true"])[0] != "false"
+        cards = _storage.due_flashcards(subject) if due_only else _storage.all_flashcards(subject)
+        self._send_json(
+            {
+                "flashcards": [
+                    {
+                        "id": c.id,
+                        "subject": c.subject,
+                        "concept": c.concept,
+                        "front": c.front,
+                        "back": c.back,
+                        "correct_streak": c.correct_streak,
+                        "times_reviewed": c.times_reviewed,
+                        "mastered": c.mastered,
+                    }
+                    for c in cards
+                ]
+            }
+        )
+
+    def _handle_review_flashcard(self, card_id: str) -> None:
+        try:
+            payload = self._read_json_body()
+            _storage.record_flashcard_review(int(card_id), bool(payload.get("got_it_right")))
+            self._send_json({"ok": True})
+        except ValueError as exc:
+            self._send_json({"error": str(exc)}, status=404)
+
+    def _handle_delete_flashcard(self, card_id: str) -> None:
+        _storage.delete_flashcard(int(card_id))
+        self._send_json({"ok": True})
+
+    def _handle_mastery(self) -> None:
+        query = parse_qs(urlsplit(self.path).query)
+        subject = (query.get("subject", [None])[0] or "").strip() or None
+        items = _storage.mastery_by_concept(subject)
+        self._send_json(
+            {
+                "concepts": [
+                    {
+                        "subject": m.subject,
+                        "concept": m.concept,
+                        "correct_count": m.correct_count,
+                        "miss_count": m.miss_count,
+                        "total_attempts": m.total_attempts,
+                        "mastery_pct": m.mastery_pct,
+                    }
+                    for m in items
+                ]
             }
         )
 

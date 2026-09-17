@@ -3,13 +3,18 @@
 Single-user local tool — no auth/multi-tenancy. One DB file (default grader/data.db) holds:
   - sessions: chat sessions (id, title, created_at, last_active_at)
   - messages: each session's turn history, in order
-  - weak_areas: concepts a student got wrong on a graded script, with a running miss count
+  - weak_areas: concepts a student got wrong on a graded script, with a running miss/correct
+    count — also the source of mastery_by_concept()'s per-concept mastery percentage
   - grading_events: one row per graded question (confidence, needs_human_review) — the raw log
     behind the grader's self-reported abstention rate
+  - flashcards: auto-generated from wrong answers during script grading (front/back built
+    directly from that question's explanation/correction, no extra model call), with a simple
+    correct-streak so review sessions surface unmastered cards first
 
 This is what lets tutor chat survive a server restart, lets the tutor reference past mistakes
-from script grading instead of starting from zero every conversation, and lets the grader's
-own reliability be measured rather than asserted.
+from script grading instead of starting from zero every conversation, lets the grader's own
+reliability be measured rather than asserted, and turns a single graded script into an ongoing
+study loop instead of a one-off result.
 """
 
 import sqlite3
@@ -61,6 +66,19 @@ CREATE TABLE IF NOT EXISTS grading_events (
     created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_grading_events_subject ON grading_events(subject);
+
+CREATE TABLE IF NOT EXISTS flashcards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject TEXT NOT NULL,
+    concept TEXT NOT NULL,
+    front TEXT NOT NULL,
+    back TEXT NOT NULL,
+    correct_streak INTEGER NOT NULL DEFAULT 0,
+    times_reviewed INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    last_reviewed_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_flashcards_subject ON flashcards(subject);
 """
 
 
@@ -89,6 +107,42 @@ class ReliabilityStats:
     @property
     def abstention_rate(self) -> float | None:
         return self.flagged_for_review / self.total_graded if self.total_graded else None
+
+
+MASTERY_STREAK_TARGET = 3  # correct reviews in a row before a flashcard is considered "mastered"
+
+
+@dataclass
+class Flashcard:
+    id: int
+    subject: str
+    concept: str
+    front: str
+    back: str
+    correct_streak: int
+    times_reviewed: int
+    created_at: str
+    last_reviewed_at: str | None
+
+    @property
+    def mastered(self) -> bool:
+        return self.correct_streak >= MASTERY_STREAK_TARGET
+
+
+@dataclass
+class ConceptMastery:
+    subject: str
+    concept: str
+    correct_count: int
+    miss_count: int
+
+    @property
+    def total_attempts(self) -> int:
+        return self.correct_count + self.miss_count
+
+    @property
+    def mastery_pct(self) -> float:
+        return self.correct_count / self.total_attempts if self.total_attempts else 0.0
 
 
 def _now() -> str:
@@ -218,6 +272,19 @@ class Storage:
         correct, miss = correct or 0, miss or 0
         return correct / (correct + miss) if (correct + miss) else None
 
+    def mastery_by_concept(self, subject: str | None = None) -> list[ConceptMastery]:
+        """Per-concept correct/miss breakdown, worst mastery first — the full picture behind
+        top_weak_areas (which only surfaces net-negative concepts)."""
+        query = "SELECT subject, concept, correct_count, miss_count FROM weak_areas"
+        params: list = []
+        if subject:
+            query += " WHERE subject = ?"
+            params.append(subject)
+        with self._connect() as conn:
+            rows = conn.execute(query, params).fetchall()
+        items = [ConceptMastery(*row) for row in rows]
+        return sorted(items, key=lambda m: m.mastery_pct)
+
     # ---- Grading reliability tracking ----
 
     def record_grading_event(
@@ -243,3 +310,63 @@ class Storage:
         return ReliabilityStats(
             subject=subject or "all", total_graded=total or 0, flagged_for_review=flagged or 0
         )
+
+    # ---- Flashcards ----
+
+    def create_flashcard(self, subject: str, concept: str, front: str, back: str) -> int:
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "INSERT INTO flashcards (subject, concept, front, back, created_at) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (subject, concept, front, back, _now()),
+            )
+            return cursor.lastrowid
+
+    def due_flashcards(self, subject: str | None = None, limit: int = 20) -> list[Flashcard]:
+        """Cards not yet mastered (correct_streak below target), least-recently-reviewed first —
+        never-reviewed cards (last_reviewed_at IS NULL) come first of all."""
+        query = (
+            "SELECT id, subject, concept, front, back, correct_streak, times_reviewed, "
+            "created_at, last_reviewed_at FROM flashcards WHERE correct_streak < ?"
+        )
+        params: list = [MASTERY_STREAK_TARGET]
+        if subject:
+            query += " AND subject = ?"
+            params.append(subject)
+        query += " ORDER BY last_reviewed_at IS NOT NULL, last_reviewed_at ASC LIMIT ?"
+        params.append(limit)
+        with self._connect() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [Flashcard(*row) for row in rows]
+
+    def all_flashcards(self, subject: str | None = None) -> list[Flashcard]:
+        query = (
+            "SELECT id, subject, concept, front, back, correct_streak, times_reviewed, "
+            "created_at, last_reviewed_at FROM flashcards"
+        )
+        params: list = []
+        if subject:
+            query += " WHERE subject = ?"
+            params.append(subject)
+        query += " ORDER BY created_at DESC"
+        with self._connect() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [Flashcard(*row) for row in rows]
+
+    def record_flashcard_review(self, card_id: int, got_it_right: bool) -> None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT correct_streak FROM flashcards WHERE id = ?", (card_id,)
+            ).fetchone()
+            if row is None:
+                raise ValueError(f"No flashcard with id {card_id!r}")
+            new_streak = row[0] + 1 if got_it_right else 0
+            conn.execute(
+                "UPDATE flashcards SET correct_streak = ?, times_reviewed = times_reviewed + 1, "
+                "last_reviewed_at = ? WHERE id = ?",
+                (new_streak, _now(), card_id),
+            )
+
+    def delete_flashcard(self, card_id: int) -> None:
+        with self._connect() as conn:
+            conn.execute("DELETE FROM flashcards WHERE id = ?", (card_id,))
