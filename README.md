@@ -44,6 +44,23 @@ real model without setting up billing, get a free Gemini key at https://aistudio
 
 ## Usage
 
+### Web UI
+
+For interactive grading without editing JSON files, run a local web form (no framework dependency,
+pure stdlib `http.server`):
+
+```bash
+python scripts/web_ui.py            # http://127.0.0.1:8000
+python scripts/web_ui.py --port 8080
+```
+
+Fill in subject, question, reference answer, rubric (one `points | criterion` per line), and student
+answer, then submit to see the graded result on the same page. Uses whichever provider `get_provider()`
+resolves to (see [Model providers](#model-providers)) — set `GEMINI_API_KEY` etc. before starting the
+server to grade with a real model instead of the `fake` provider.
+
+### CLI
+
 Grade a single case file:
 
 ```bash
