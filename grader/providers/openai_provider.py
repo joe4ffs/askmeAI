@@ -12,7 +12,9 @@ class OpenAIProvider:
         self._client = client or OpenAI(api_key=os.environ["OPENAI_API_KEY"])
         self._model = model
 
-    def complete(self, system: str, prompt: str, image: ImageInput | None = None) -> str:
+    def complete(
+        self, system: str, prompt: str, image: ImageInput | None = None, thinking: bool = True
+    ) -> str:
         content: str | list[dict] = prompt
         if image is not None:
             content = [
@@ -32,7 +34,7 @@ class OpenAIProvider:
         )
         return response.choices[0].message.content
 
-    def complete_chat(self, system: str, history: list[ChatMessage]) -> str:
+    def complete_chat(self, system: str, history: list[ChatMessage], thinking: bool = True) -> str:
         response = self._client.chat.completions.create(
             model=self._model,
             messages=[{"role": "system", "content": system}]

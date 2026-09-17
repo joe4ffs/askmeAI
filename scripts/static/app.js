@@ -36,7 +36,18 @@
   const chatInput = document.getElementById("chat-input");
   const sessionListEl = document.getElementById("session-list");
   const newChatBtn = document.getElementById("new-chat-btn");
+  const thinkingToggle = document.getElementById("thinking-toggle");
   let sessionId = localStorage.getItem("ai-grader-session-id") || null;
+
+  try {
+    const saved = localStorage.getItem("ai-grader-thinking");
+    if (saved !== null) thinkingToggle.checked = saved === "true";
+  } catch (err) {}
+  thinkingToggle.addEventListener("change", () => {
+    try {
+      localStorage.setItem("ai-grader-thinking", thinkingToggle.checked);
+    } catch (err) {}
+  });
 
   const WELCOME_HTML =
     "Hi — ask me anything academic: math, science, history, writing, code, whatever you're stuck on.";
@@ -175,7 +186,7 @@
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: sessionId, message, subject }),
+        body: JSON.stringify({ session_id: sessionId, message, subject, thinking: thinkingToggle.checked }),
       });
       const data = await res.json();
       pending.remove();

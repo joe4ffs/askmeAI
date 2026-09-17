@@ -18,7 +18,9 @@ class OllamaProvider:
         self._model = model
         self._host = host or os.environ.get("OLLAMA_HOST", DEFAULT_HOST)
 
-    def complete(self, system: str, prompt: str, image: ImageInput | None = None) -> str:
+    def complete(
+        self, system: str, prompt: str, image: ImageInput | None = None, thinking: bool = True
+    ) -> str:
         payload = {
             "model": self._model,
             "system": system,
@@ -32,7 +34,7 @@ class OllamaProvider:
         response.raise_for_status()
         return response.json()["response"]
 
-    def complete_chat(self, system: str, history: list[ChatMessage]) -> str:
+    def complete_chat(self, system: str, history: list[ChatMessage], thinking: bool = True) -> str:
         payload = {
             "model": self._model,
             "messages": [{"role": "system", "content": system}]

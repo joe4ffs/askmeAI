@@ -59,7 +59,8 @@ def ask_tutor(
     provider: ModelProvider | None = None,
     weak_areas: list[WeakArea] | None = None,
     accuracy: float | None = None,
+    thinking: bool = True,
 ) -> str:
     provider = provider or get_provider()
     system = build_system_prompt(weak_areas, accuracy)
-    return provider.complete_chat(system=system, history=history)
+    return provider.complete_chat(system=system, history=history, thinking=thinking)

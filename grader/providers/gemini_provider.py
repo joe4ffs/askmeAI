@@ -18,7 +18,9 @@ class GeminiProvider:
         self._client = client or genai.Client(api_key=os.environ["GEMINI_API_KEY"])
         self._model = model
 
-    def complete(self, system: str, prompt: str, image: ImageInput | None = None) -> str:
+    def complete(
+        self, system: str, prompt: str, image: ImageInput | None = None, thinking: bool = True
+    ) -> str:
         parts = [types.Part.from_text(text=prompt)]
         if image is not None:
             parts.append(
@@ -30,11 +32,13 @@ class GeminiProvider:
         response = self._client.models.generate_content(
             model=self._model,
             contents=[types.Content(role="user", parts=parts)],
-            config=types.GenerateContentConfig(system_instruction=system),
+            config=types.GenerateContentConfig(
+                system_instruction=system, thinking_config=_thinking_config(thinking)
+            ),
         )
         return response.text
 
-    def complete_chat(self, system: str, history: list[ChatMessage]) -> str:
+    def complete_chat(self, system: str, history: list[ChatMessage], thinking: bool = True) -> str:
         contents = [
             types.Content(
                 role="model" if msg.role == "assistant" else "user",
@@ -45,6 +49,12 @@ class GeminiProvider:
         response = self._client.models.generate_content(
             model=self._model,
             contents=contents,
-            config=types.GenerateContentConfig(system_instruction=system),
+            config=types.GenerateContentConfig(
+                system_instruction=system, thinking_config=_thinking_config(thinking)
+            ),
         )
         return response.text
+
+
+def _thinking_config(thinking: bool) -> types.ThinkingConfig:
+    return types.ThinkingConfig(thinking_budget=None if thinking else 0)

@@ -34,6 +34,15 @@
           <p class="hint">Optional — helps the tutor tailor explanations and recall past weak areas.</p>
 
           <div class="sidebar-block">
+            <h3>Response Speed</h3>
+            <label class="toggle-row">
+              <input type="checkbox" id="thinking-toggle" checked>
+              <span>Deep thinking (slower, more careful reasoning)</span>
+            </label>
+            <p class="hint">Turn off to skip the model's internal reasoning step. Usually faster, but the free-tier API's own response time varies regardless.</p>
+          </div>
+
+          <div class="sidebar-block">
             <h3>Chat History</h3>
             <ul id="session-list" class="session-list"></ul>
           </div>

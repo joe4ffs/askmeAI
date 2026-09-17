@@ -128,13 +128,14 @@ class Handler(BaseHTTPRequestHandler):
                 session_id = _storage.create_session()
             message = payload["message"]
             subject = (payload.get("subject") or "").strip() or None
+            thinking = bool(payload.get("thinking", True))
 
             _storage.append_message(session_id, "user", message)
             history = _storage.get_history(session_id)
 
             weak_areas = _storage.top_weak_areas(subject) if subject else []
             accuracy = _storage.recent_accuracy(subject)
-            reply = ask_tutor(history, weak_areas=weak_areas, accuracy=accuracy)
+            reply = ask_tutor(history, weak_areas=weak_areas, accuracy=accuracy, thinking=thinking)
 
             _storage.append_message(session_id, "assistant", reply)
 

@@ -21,13 +21,18 @@ class ModelProvider(Protocol):
     must return raw text expected to contain a JSON object matching the caller's schema.
     """
 
-    def complete(self, system: str, prompt: str, image: ImageInput | None = None) -> str: ...
+    def complete(
+        self, system: str, prompt: str, image: ImageInput | None = None, thinking: bool = True
+    ) -> str:
+        """`thinking` is a hint, not a guarantee — providers with no extended-reasoning mode
+        (or no way to disable it) may ignore it."""
+        ...
 
-    def complete_chat(self, system: str, history: list[ChatMessage]) -> str:
+    def complete_chat(self, system: str, history: list[ChatMessage], thinking: bool = True) -> str:
         """Multi-turn free-text completion for conversational use (e.g. tutoring chat).
 
         `history` is the full conversation so far, ending with the latest user message.
         Default implementations may collapse this to a single prompt if the underlying
-        client has no native multi-turn support.
+        client has no native multi-turn support. `thinking` is a hint (see `complete`).
         """
         ...

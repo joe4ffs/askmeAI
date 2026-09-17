@@ -13,7 +13,9 @@ class FakeProvider:
     real OCR.
     """
 
-    def complete(self, system: str, prompt: str, image: ImageInput | None = None) -> str:
+    def complete(
+        self, system: str, prompt: str, image: ImageInput | None = None, thinking: bool = True
+    ) -> str:
         if "questions" in prompt and "student_answer_as_written" in prompt:
             return self._fake_script_grade(image)
         if image is not None:
@@ -27,7 +29,7 @@ class FakeProvider:
             )
         return self._fake_grade(prompt)
 
-    def complete_chat(self, system: str, history: list[ChatMessage]) -> str:
+    def complete_chat(self, system: str, history: list[ChatMessage], thinking: bool = True) -> str:
         last_user = history[-1].content if history else ""
         return (
             f"[FakeProvider placeholder tutor response — no real model configured]\n\n"

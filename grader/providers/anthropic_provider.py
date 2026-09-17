@@ -12,7 +12,9 @@ class AnthropicProvider:
         self._client = client or anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
         self._model = model
 
-    def complete(self, system: str, prompt: str, image: ImageInput | None = None) -> str:
+    def complete(
+        self, system: str, prompt: str, image: ImageInput | None = None, thinking: bool = True
+    ) -> str:
         content: str | list[dict] = prompt
         if image is not None:
             content = [
@@ -35,7 +37,7 @@ class AnthropicProvider:
         )
         return response.content[0].text
 
-    def complete_chat(self, system: str, history: list[ChatMessage]) -> str:
+    def complete_chat(self, system: str, history: list[ChatMessage], thinking: bool = True) -> str:
         response = self._client.messages.create(
             model=self._model,
             max_tokens=4096,
